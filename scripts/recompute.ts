@@ -56,12 +56,17 @@ function main() {
       const k = ks.get(r.machine_id) ?? 1.0;
       const beansG = applyCalibration(baseBeans, k);
 
-      let milkMl = 0;
-      try {
-        const raw = JSON.parse(r.raw_json) as { milk?: { consumption?: number } | null };
-        milkMl = raw.milk?.consumption ?? 0;
-      } catch { /* ignore */ }
-      if (productName != null && cfg.zeroMilkProducts.includes(productName)) milkMl = 0;
+      let milkMl: number;
+      if (productName != null && cfg.milkByProduct[productName] != null) {
+        milkMl = cfg.milkByProduct[productName]!;
+      } else if (productName != null && cfg.zeroMilkProducts.includes(productName)) {
+        milkMl = 0;
+      } else {
+        try {
+          const raw = JSON.parse(r.raw_json) as { milk?: { consumption?: number } | null };
+          milkMl = raw.milk?.consumption ?? 0;
+        } catch { milkMl = 0; }
+      }
 
       const co2G = co2ForBrew(beansG, milkMl, cfg.co2);
       upd.run(beansG, milkMl, co2G, r.machine_id, r.id);

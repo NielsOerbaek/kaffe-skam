@@ -47,12 +47,36 @@
     "_default": 7
   },
 
-  "zeroMilkProducts": [
-    "White tea 80°",
-    "Green Tea 85°",
-    "Black tea 93°",
-    "Hot Water"
-  ],
+  "milkByProduct": {
+    "Cortado": 60,
+    "Dbl. Cortado": 110,
+    "2 x Cortado": 120,
+    "Cappuccino": 130,
+    "Dbl. Cappuccino": 220,
+    "2 x Cappuccino": 260,
+    "Latte": 200,
+    "Dbl. Latte": 340,
+    "2 x Latte": 400,
+    "Splash Cold milk": 40,
+    "Splash warm milk": 40,
+    "Milk for Choco": 150,
+    "Everfoam": 30,
+    "White tea 80°": 0,
+    "Green Tea 85°": 0,
+    "Black tea 93°": 0,
+    "Hot Water": 0,
+    "Coffee": 0,
+    "Strong Coffee": 0,
+    "2x Coffee": 0,
+    "Americano": 0,
+    "Dbl. Americano": 0,
+    "2x Americano": 0,
+    "Espresso": 0,
+    "Dbl. Espresso": 0,
+    "2x Espresso": 0
+  },
+
+  "zeroMilkProducts": [],
 
   "productNameOverrides": {
     "61": "Hot Water"

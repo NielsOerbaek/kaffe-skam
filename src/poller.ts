@@ -152,8 +152,17 @@ export class Poller {
       byType: this.cfg.beansDefaultsG,
     });
     const beansG = applyCalibration(base, k);
-    const isZeroMilk = productName != null && this.cfg.zeroMilkProducts.includes(productName);
-    const milkMl = isZeroMilk ? 0 : (ph.milk?.consumption ?? 0);
+    // Milk volume: prefer the per-product config override (the API value is
+    // not in ml). Fall back to the legacy zeroMilkProducts list, then to the
+    // raw API value as last resort.
+    let milkMl: number;
+    if (productName != null && this.cfg.milkByProduct[productName] != null) {
+      milkMl = this.cfg.milkByProduct[productName]!;
+    } else if (productName != null && this.cfg.zeroMilkProducts.includes(productName)) {
+      milkMl = 0;
+    } else {
+      milkMl = ph.milk?.consumption ?? 0;
+    }
     const co2G = co2ForBrew(beansG, milkMl, this.cfg.co2);
     const expiresAt = toLocalISO(new Date(new Date(machineTs).getTime() + this.cfg.polling.splashWindowMs));
     return {

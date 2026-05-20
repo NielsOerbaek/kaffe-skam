@@ -22,6 +22,7 @@ const baseConfig: Config = {
   co2: { beansFactorGPerG: 1.24, milkFactorGPerMl: 1.4, coffeeBaselineG: 8.68 },
   beansDefaultsG: { ESPRESSO: 7, CAPPUCCINO: 7, _default: 7 },
   beansByProduct: {},
+  milkByProduct: {},
   zeroMilkProducts: [],
   productNameOverrides: {},
   calibration: { minBrewsBetweenCalibrations: 2, maxScaleDelta: 0.5 },

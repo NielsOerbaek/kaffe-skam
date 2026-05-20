@@ -10,8 +10,9 @@ export interface Config {
   co2: { beansFactorGPerG: number; milkFactorGPerMl: number; coffeeBaselineG: number };
   beansDefaultsG: Record<string, number>;       // by API drink_type ENUM — fallback only
   beansByProduct: Record<string, number>;       // by machine button name — primary
-  zeroMilkProducts: string[];                    // buttons where any API-reported milk is phantom
-  productNameOverrides: Record<string, string>;  // keyId (as string) → human name; for slots the API can't name
+  milkByProduct: Record<string, number>;        // by machine button name; overrides the API's unreliable milk.consumption value (in ml)
+  zeroMilkProducts: string[];                   // legacy list — entries here force milkMl=0 if no milkByProduct match
+  productNameOverrides: Record<string, string>; // keyId (as string) → human name; for slots the API can't name
   calibration: { minBrewsBetweenCalibrations: number; maxScaleDelta: number };
   polling: {
     brewsIntervalMs: number;
@@ -113,12 +114,14 @@ export function loadConfig(dir: string): Config {
 
   // Optional fields default to empty if absent in config.json
   const beansByProduct = (raw && typeof raw === "object" && (raw as any).beansByProduct) || {};
+  const milkByProduct = (raw && typeof raw === "object" && (raw as any).milkByProduct) || {};
   const zeroMilkProducts = Array.isArray((raw as any).zeroMilkProducts) ? (raw as any).zeroMilkProducts : [];
   const productNameOverrides = (raw && typeof raw === "object" && (raw as any).productNameOverrides) || {};
 
   return {
     ...raw,
     beansByProduct,
+    milkByProduct,
     zeroMilkProducts,
     productNameOverrides,
     machines,
