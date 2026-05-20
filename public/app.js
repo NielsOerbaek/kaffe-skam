@@ -62,6 +62,23 @@ function fmtMonthHeader(now = new Date()) {
   const m = DA_MONTHS_FULL[now.getMonth()] ?? "";
   return `${m.charAt(0).toUpperCase() + m.slice(1)} ${now.getFullYear()}`;
 }
+
+// Danish relative time. machineTs is local-time ISO without "Z" — Date()
+// parses it as local time, which is what we want.
+function fmtRelativeTimeDa(machineTs) {
+  const ts = new Date(machineTs).getTime();
+  if (!Number.isFinite(ts)) return "";
+  const diff = Math.max(0, Date.now() - ts);
+  const s = Math.floor(diff / 1000);
+  if (s < 5) return "lige nu";
+  if (s < 60) return `${s} sekunder siden`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return m === 1 ? "1 minut siden" : `${m} minutter siden`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return h === 1 ? "1 time siden" : `${h} timer siden`;
+  const d = Math.floor(h / 24);
+  return d === 1 ? "1 dag siden" : `${d} dage siden`;
+}
 function fmtBrewTime(machineTs) {
   const m = /^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2}):/.exec(machineTs);
   return m ? `${m[1]}.${m[2]}` : "—";
@@ -109,6 +126,7 @@ function render(s) {
   const previous = brews.slice(1);
 
   if (!latest) {
+    latestBrewTs = null;
     $("last-label").textContent = "Seneste bryg";
     $("drink-name").textContent = "Venter på første kop…";
     $("composition").innerHTML = " ";
@@ -119,8 +137,8 @@ function render(s) {
     return;
   }
 
-  const ts = fmtBrewTs(latest.machineTs);
-  $("last-label").textContent = `Seneste bryg · ${ts}`;
+  latestBrewTs = latest.machineTs;
+  updateLastLabel();
   $("drink-name").textContent = brewDisplayName(latest);
   $("drink-floor").textContent = latest.floor;
 
@@ -165,5 +183,16 @@ function renderPrevious(previous) {
   }
 }
 
+// Latest brew's machine timestamp, tracked outside render() so a separate
+// 10s tick can keep the relative time fresh between fetches.
+let latestBrewTs = null;
+function updateLastLabel() {
+  if (!latestBrewTs) return;
+  const abs = fmtBrewTs(latestBrewTs);
+  const rel = fmtRelativeTimeDa(latestBrewTs);
+  $("last-label").textContent = rel ? `Seneste bryg · ${abs} · ${rel}` : `Seneste bryg · ${abs}`;
+}
+
 refresh();
 setInterval(refresh, REFRESH_MS);
+setInterval(updateLastLabel, 10_000);
