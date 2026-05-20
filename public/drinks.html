@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Pr. drik · Kaffe-skam</title>
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@200,300,400,500&display=swap">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="page-drinks">
+  <div class="brand">THORAVEJ&nbsp;29</div>
+  <nav class="nav">
+    <a href="/">Live</a>
+    <a href="/timeline">Tidslinje</a>
+    <a href="/drinks" class="active">Pr. drik</a>
+    <a href="/metode">Metode</a>
+  </nav>
+
+  <main class="page">
+    <header class="page-head">
+      <div class="label" id="drinks-month">—</div>
+      <h1 class="page-title">Drikke fordeling</h1>
+      <div class="page-stats" id="drinks-stats">&nbsp;</div>
+    </header>
+
+    <section class="drink-list-section">
+      <div class="dl-header">
+        <span class="dl-h-drink">Drik</span>
+        <span class="dl-h-share">Andel af CO₂</span>
+        <span class="dl-h-cups">Kopper</span>
+        <span class="dl-h-co2">CO₂</span>
+      </div>
+      <ul class="drink-list" id="drink-list"></ul>
+    </section>
+  </main>
+
+  <div class="status">
+    <span class="chip" id="chip-status">Live</span>
+    <span class="chip alt" id="chip-time">—</span>
+  </div>
+  <div class="footnote">
+    Tallene dækker kun kaffebønner og mælk &nbsp;·&nbsp; elektricitet, vand og emballage er ikke regnet med
+  </div>
+
+  <script src="/static/chrome.js"></script>
+  <script src="/static/drinks.js"></script>
+</body>
+</html>

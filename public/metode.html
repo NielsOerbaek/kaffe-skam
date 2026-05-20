@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Metode · Kaffe-skam</title>
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@200,300,400,500&display=swap">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="page-metode">
+  <div class="brand">THORAVEJ&nbsp;29</div>
+  <nav class="nav">
+    <a href="/">Live</a>
+    <a href="/timeline">Tidslinje</a>
+    <a href="/drinks">Pr. drik</a>
+    <a href="/metode" class="active">Metode</a>
+  </nav>
+
+  <main class="page">
+    <header class="page-head">
+      <div class="label">Sådan regner vi</div>
+      <h1 class="page-title">Metode</h1>
+    </header>
+
+    <article class="prose">
+      <p class="lead">
+        Hver eneste bryg fra de to Eversys-maskiner på 2. og 3. sal logges
+        i Eversys Telemetry API. Vi henter dem hvert femte sekund og
+        oversætter dem til en CO₂-værdi ved hjælp af to faktorer:
+      </p>
+
+      <pre class="formula">co₂(bryg) = bønner (g) × 1,24  +  mælk (ml) × 1,4</pre>
+
+      <p>
+        <strong>1,24 g CO₂eq pr. g bønner</strong> er værdien for den
+        specifikke organiske kaffe Thoravej 29 bruger — usædvanligt lav
+        sammenlignet med ikke-certificeret kaffe (typisk 17 g/g).
+        <strong>1,4 g CO₂eq pr. ml mælk</strong> er en standardværdi for
+        organisk komælk fra nordeuropæiske LCA-studier. Begge tal kan
+        ændres i <code>config.json</code>.
+      </p>
+
+      <h2>Hvad er <em>ikke</em> regnet med</h2>
+      <p>
+        Elektricitet til maskinen, vand, emballage og logistik er
+        bevidst udeladt. Bønner og mælk er de dominerende bidrag for
+        kaffemaskinen som helhed; resten ville støje uden at flytte
+        rangordenen mellem espresso og latte. Det er den vægtning, der
+        gør det meningsfuldt at sammenligne en sort kaffe (≈13 g CO₂)
+        med en cappuccino (≈170 g) — det er <em>mælken</em>, ikke
+        elspareren, der gør forskellen.
+      </p>
+
+      <h2>Estimat af bønner pr. bryg</h2>
+      <p>
+        API'et fortæller os ikke, hvor mange gram bønner der gik i
+        hver enkelt kop. Vi gætter ud fra drinktypen
+        (espresso = 7 g, dobbelt = 14 g osv.) og skalerer regelmæssigt
+        med en kalibrerings-faktor <em>k</em>, så den samlede sum
+        matcher maskinens bønne-tæller. Lige nu er <em>k</em> ≈ 1,5 på
+        begge maskiner; det betyder, at en espresso reelt får 10,5 g
+        bønner i estimatet. Tallet for et enkelt bryg kan derfor være
+        let unøjagtigt, men de daglige og månedlige totaler er præcise
+        til et kg.
+      </p>
+
+      <h2>Skvæt-mælk og opfølgnings-bryg</h2>
+      <p>
+        Når man dispenserer et lille skvæt ekstra mælk efter en kop
+        kaffe, logger Eversys det som en ny separat bryg. Vi
+        sammenlægger den med den foregående kop, hvis den kommer
+        inden for fem minutter og kun indeholder mælk eller varmt
+        vand. På den måde står Cappuccino + ekstra mælk som
+        én kop, ikke to.
+      </p>
+
+      <h2>Kildekode &amp; data</h2>
+      <p>
+        Hele projektet ligger på
+        <a href="https://github.com/NielsOerbaek/kaffe-skam" rel="noopener">github.com/NielsOerbaek/kaffe-skam</a>.
+        Den fulde specifikation, beslutninger og afvejninger findes
+        under <code>docs/superpowers/specs/</code>.
+        API-dokumentationen for Eversys-telemetri er på
+        <a href="https://developers.eversys-telemetry.com" rel="noopener">developers.eversys-telemetry.com</a>.
+      </p>
+    </article>
+  </main>
+
+  <div class="status">
+    <span class="chip" id="chip-status">Live</span>
+    <span class="chip alt" id="chip-time">—</span>
+  </div>
+  <div class="footnote">
+    Tallene dækker kun kaffebønner og mælk &nbsp;·&nbsp; elektricitet, vand og emballage er ikke regnet med
+  </div>
+
+  <script src="/static/chrome.js"></script>
+</body>
+</html>

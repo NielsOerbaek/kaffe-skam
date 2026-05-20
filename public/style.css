@@ -51,8 +51,12 @@ body::before {
   border-top: 1px solid var(--hairline);
   gap: 1.6vh;
 }
-.month-header { font-weight: 500; }
-.month-stats { display: flex; gap: 4.5vw; margin-top: 0.4vh; }
+.month-header {
+  font-weight: 500;
+  padding-bottom: 1.4vh;
+  border-bottom: 1px solid var(--hairline);
+}
+.month-stats { display: flex; gap: 4.5vw; margin-top: 1.4vh; }
 .month-stats > div { display: flex; flex-direction: column; gap: 0.9vh; }
 .month-stats .n {
   font-size: 5.6vh;
@@ -250,6 +254,32 @@ body::before {
   padding: 0.75vh 1.1vw;
 }
 
+/* ────────────────── top-center navigation ────────────────── */
+.nav {
+  position: fixed;
+  top: 1.6vh; left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: 0.4vw;
+  z-index: 8;
+  font-size: 1.35vh;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.nav a {
+  color: var(--muted);
+  text-decoration: none;
+  padding: 0.75vh 1.1vw;
+  border-bottom: 1px solid transparent;
+  transition: color 200ms, border-color 200ms;
+}
+.nav a.active {
+  color: var(--fg);
+  border-bottom-color: var(--fg);
+}
+.nav a:hover { color: var(--fg); }
+
 /* ────────────────── corner status (live + clock) — floating in top-right ────────────────── */
 .status {
   position: fixed;
@@ -353,7 +383,9 @@ body::before {
     font-size: clamp(13px, 3.4vw, 16px);
     letter-spacing: 0.24em;
     color: var(--fg);
-    margin-bottom: 1vh;
+    padding-bottom: 1.2vh;
+    border-bottom: 1px solid var(--hairline);
+    margin-bottom: 1.4vh;
   }
   .left-bottom { gap: 1.2vh; }
   .month-stats {
@@ -380,7 +412,7 @@ body::before {
   .previous-list .pb-floor { font-size: clamp(10px, 2.4vw, 12px); }
   .previous-list .pb-time { display: none; }
 
-  /* Brand, status and footnote all share the 5vw gutter for vertical alignment. */
+  /* Brand, nav, status and footnote all share the 5vw gutter for alignment. */
   .brand {
     top: 1.6vh; left: var(--pad-x);
     font-size: clamp(10px, 2.6vw, 13px);
@@ -394,6 +426,20 @@ body::before {
     padding: 0.5vh 2vw;
     font-size: clamp(10px, 2.4vw, 12px);
   }
+  /* On portrait the nav sits as its own strip below brand + status, so it
+     doesn't collide with either. */
+  .nav {
+    top: auto;
+    bottom: auto;
+    position: static;
+    transform: none;
+    margin: 5vh var(--pad-x) -2vh;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 3vw;
+    font-size: clamp(10px, 2.6vw, 13px);
+  }
+  .nav a { padding: 0.4vh 0; }
 
   /* Footnote becomes part of the flow at the bottom of the document */
   .footnote {
@@ -404,4 +450,223 @@ body::before {
     font-size: clamp(11px, 2.8vw, 13px);
     line-height: 1.5;
   }
+}
+
+/* ────────────────── sub-pages: shared frame ────────────────── */
+.page {
+  min-height: 100vh;
+  padding: 12vh 6vw 12vh;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+}
+.page-head {
+  border-bottom: 1px solid var(--hairline);
+  padding-bottom: 3vh;
+  margin-bottom: 4vh;
+}
+.page-title {
+  font-size: clamp(40px, 6vw, 80px);
+  font-weight: 300;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  margin: 0.6vh 0 1.4vh;
+}
+.page-stats {
+  font-size: 1.9vh;
+  color: var(--muted);
+  font-weight: 300;
+  letter-spacing: 0.01em;
+}
+.page-stats .stat-line { display: inline-block; }
+
+/* ────────────────── timeline chart ────────────────── */
+.chart-section { display: flex; flex-direction: column; gap: 2vh; flex: 1; }
+.chart-toggle {
+  display: flex; gap: 0.4vw;
+  font-size: 1.35vh;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-weight: 500;
+}
+.chart-toggle button {
+  background: none;
+  border: none;
+  border-bottom: 1px solid transparent;
+  padding: 0.6vh 0.4vw;
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  transition: color 200ms, border-color 200ms;
+}
+.chart-toggle button.active { color: var(--fg); border-bottom-color: var(--fg); }
+.chart-toggle button:hover { color: var(--fg); }
+
+.chart-wrap {
+  position: relative;
+  width: 100%;
+  flex: 1;
+  min-height: 320px;
+}
+#chart {
+  width: 100%;
+  height: 50vh;
+  min-height: 320px;
+  display: block;
+}
+#chart .grid {
+  stroke: var(--hairline);
+  stroke-width: 1;
+}
+#chart .axis {
+  stroke: rgba(20,20,20,0.32);
+  stroke-width: 1;
+}
+#chart .y-label {
+  fill: var(--muted-dim);
+  font-family: "General Sans", sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+}
+#chart .bar { fill: rgba(20,20,20,0.55); }
+#chart .bar.today { fill: var(--up); }
+.x-axis {
+  position: relative;
+  height: 2.4vh;
+  margin-top: 0.5vh;
+}
+.x-tick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 1.4vh;
+  color: var(--muted);
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+/* ────────────────── drinks list ────────────────── */
+.drink-list-section { display: flex; flex-direction: column; gap: 1.2vh; }
+.dl-header,
+.drink-list li {
+  display: grid;
+  grid-template-columns: minmax(160px, 1.4fr) minmax(140px, 2fr) 64px minmax(70px, 0.8fr) minmax(80px, 0.8fr);
+  align-items: center;
+  gap: 2vw;
+  padding: 1.3vh 0;
+}
+.dl-header {
+  border-bottom: 1px solid var(--hairline);
+  color: var(--muted);
+  font-size: 1.4vh;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 500;
+  padding-bottom: 1.4vh;
+  margin-bottom: 1vh;
+}
+.dl-h-cups, .dl-h-co2, .dl-h-share { text-align: right; }
+.drink-list {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex; flex-direction: column;
+}
+.drink-list li {
+  border-bottom: 1px solid var(--hairline);
+  font-size: 2.2vh;
+  font-weight: 300;
+}
+.drink-list li.empty {
+  grid-template-columns: 1fr;
+  color: var(--muted-dim);
+  font-style: italic;
+}
+.dl-drink { letter-spacing: -0.01em; }
+.dl-bar {
+  position: relative;
+  height: 4px;
+  background: var(--bar-bg);
+  border-radius: 2px;
+}
+.dl-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--fg);
+  border-radius: 2px;
+  transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.dl-share, .dl-cups, .dl-co2 {
+  text-align: right;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+.dl-share { color: var(--muted); font-size: 1.8vh; }
+.dl-co2 .unit-tail { font-size: 0.85em; color: var(--muted); }
+
+/* ────────────────── methodology prose ────────────────── */
+.prose {
+  max-width: 720px;
+  font-size: clamp(15px, 2.4vh, 19px);
+  line-height: 1.6;
+  color: var(--fg);
+}
+.prose .lead {
+  font-size: clamp(17px, 2.7vh, 22px);
+  line-height: 1.5;
+  color: var(--fg);
+  margin-bottom: 3vh;
+}
+.prose p { margin: 1.4em 0; }
+.prose h2 {
+  font-size: clamp(20px, 3vh, 28px);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  margin-top: 4vh;
+  margin-bottom: 1vh;
+  padding-top: 3vh;
+  border-top: 1px solid var(--hairline);
+}
+.prose code,
+.prose .formula {
+  font-family: "General Sans", monospace;
+  background: rgba(20,20,20,0.06);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  font-size: 0.95em;
+}
+.prose .formula {
+  display: block;
+  padding: 1.4em;
+  font-size: clamp(15px, 2.2vh, 18px);
+  margin: 2vh 0;
+  text-align: center;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+.prose a {
+  color: var(--fg);
+  text-decoration: underline;
+  text-decoration-color: var(--hairline);
+  text-underline-offset: 3px;
+}
+.prose a:hover { text-decoration-color: var(--fg); }
+
+/* sub-page mobile tweaks */
+@media (max-width: 820px), (orientation: portrait) {
+  .page { padding: 14vh var(--pad-x) 4vh; }
+  .page-head { padding-bottom: 2vh; margin-bottom: 3vh; }
+  .dl-header { display: none; }
+  .drink-list li {
+    grid-template-columns: 1fr auto;
+    gap: 1.5vw;
+    padding: 1.6vh 0;
+    font-size: clamp(15px, 4vw, 19px);
+  }
+  .drink-list li .dl-bar { grid-column: 1 / -1; order: 3; }
+  .drink-list li .dl-share { order: 4; font-size: clamp(11px, 3vw, 13px); }
+  .drink-list li .dl-cups,
+  .drink-list li .dl-co2 { order: 2; }
+  .drink-list li .dl-drink { order: 1; }
+  .drink-list li .dl-cups::after { content: " kopper"; color: var(--muted); font-size: 0.7em; }
+  #chart { height: 44vh; min-height: 240px; }
 }

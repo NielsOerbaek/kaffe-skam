@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tidslinje · Kaffe-skam</title>
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@200,300,400,500&display=swap">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="page-timeline">
+  <div class="brand">THORAVEJ&nbsp;29</div>
+  <nav class="nav">
+    <a href="/">Live</a>
+    <a href="/timeline" class="active">Tidslinje</a>
+    <a href="/drinks">Pr. drik</a>
+    <a href="/metode">Metode</a>
+  </nav>
+
+  <main class="page">
+    <header class="page-head">
+      <div class="label">Sidste 30 dage</div>
+      <h1 class="page-title">Tidslinje</h1>
+      <div class="page-stats" id="page-stats">&nbsp;</div>
+    </header>
+
+    <section class="chart-section">
+      <div class="chart-toggle" id="chart-toggle">
+        <button data-metric="co2" class="active">CO₂eq</button>
+        <button data-metric="cups">Kopper</button>
+      </div>
+      <div class="chart-wrap">
+        <svg id="chart" viewBox="0 0 1000 360" preserveAspectRatio="none"></svg>
+        <div class="x-axis" id="x-axis"></div>
+      </div>
+    </section>
+  </main>
+
+  <div class="status">
+    <span class="chip" id="chip-status">Live</span>
+    <span class="chip alt" id="chip-time">—</span>
+  </div>
+  <div class="footnote">
+    Tallene dækker kun kaffebønner og mælk &nbsp;·&nbsp; elektricitet, vand og emballage er ikke regnet med
+  </div>
+
+  <script src="/static/chrome.js"></script>
+  <script src="/static/timeline.js"></script>
+</body>
+</html>

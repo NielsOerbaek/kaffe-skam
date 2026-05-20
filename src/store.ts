@@ -84,6 +84,52 @@ export class Store {
     return this.addPendingIfMatches(row, p => p.localDate === localDate);
   }
 
+  // Per-day rollups for the last N days, oldest first. Pending brews are
+  // attributed to their localDate so today's bar reflects in-flight cups too.
+  getDailyTotals(sinceLocalDate: string): Array<{ date: string; cups: number; co2_g: number }> {
+    const rows = this.db.prepare(`
+      SELECT local_date AS date,
+             COUNT(*)        AS cups,
+             COALESCE(SUM(co2_g), 0) AS co2_g
+      FROM brews
+      WHERE local_date >= ?
+      GROUP BY local_date
+      ORDER BY local_date ASC
+    `).all(sinceLocalDate) as Array<{ date: string; cups: number; co2_g: number }>;
+
+    // Fold pending brews in. (One per machine, may all land on different days.)
+    const map = new Map(rows.map(r => [r.date, r]));
+    for (const p of this.getAllPending()) {
+      if (p.localDate < sinceLocalDate) continue;
+      const cur = map.get(p.localDate);
+      if (cur) { cur.cups += 1; cur.co2_g += p.co2G; }
+      else map.set(p.localDate, { date: p.localDate, cups: 1, co2_g: p.co2G });
+    }
+    return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  // Per-drink-type rollup for a given month. Sorted by CO2 contribution DESC.
+  getByDrinkType(localMonth: string): Array<{ drinkType: string; cups: number; co2_g: number }> {
+    const rows = this.db.prepare(`
+      SELECT drink_type AS drinkType,
+             COUNT(*)   AS cups,
+             COALESCE(SUM(co2_g), 0) AS co2_g
+      FROM brews
+      WHERE local_month = ?
+      GROUP BY drink_type
+      ORDER BY co2_g DESC, cups DESC
+    `).all(localMonth) as Array<{ drinkType: string; cups: number; co2_g: number }>;
+
+    const map = new Map(rows.map(r => [r.drinkType, r]));
+    for (const p of this.getAllPending()) {
+      if (p.localMonth !== localMonth) continue;
+      const cur = map.get(p.drinkType);
+      if (cur) { cur.cups += 1; cur.co2_g += p.co2G; }
+      else map.set(p.drinkType, { drinkType: p.drinkType, cups: 1, co2_g: p.co2G });
+    }
+    return Array.from(map.values()).sort((a, b) => b.co2_g - a.co2_g || b.cups - a.cups);
+  }
+
   getMonthTotals(localMonth: string): Totals {
     const row = this.db.prepare(`
       SELECT COUNT(*) AS cups, COALESCE(SUM(co2_g), 0) AS co2_g

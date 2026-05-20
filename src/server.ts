@@ -26,15 +26,69 @@ export function createServer(opts: ServerOpts): Server {
 
 function handleRequest(req: IncomingMessage, res: ServerResponse, opts: ServerOpts) {
   const rawUrl = req.url ?? "/";
-  const path = rawUrl.split("?")[0] ?? "/";
+  const qIdx = rawUrl.indexOf("?");
+  const path = qIdx >= 0 ? rawUrl.slice(0, qIdx) : rawUrl;
+  const query = new URLSearchParams(qIdx >= 0 ? rawUrl.slice(qIdx + 1) : "");
 
-  if (path === "/api/state") return sendState(res, opts);
-  if (path === "/") return serveStatic(res, opts.publicDir, "index.html");
+  if (path === "/api/state")    return sendState(res, opts);
+  if (path === "/api/timeline") return sendTimeline(res, opts, query);
+  if (path === "/api/drinks")   return sendDrinks(res, opts, query);
+
+  if (path === "/")          return serveStatic(res, opts.publicDir, "index.html");
+  if (path === "/timeline")  return serveStatic(res, opts.publicDir, "timeline.html");
+  if (path === "/drinks")    return serveStatic(res, opts.publicDir, "drinks.html");
+  if (path === "/metode")    return serveStatic(res, opts.publicDir, "metode.html");
+
   if (path.startsWith("/static/")) {
     const rel = path.slice("/static/".length);
     return serveStatic(res, opts.publicDir, rel);
   }
   res.statusCode = 404; res.end("not found");
+}
+
+function sendTimeline(res: ServerResponse, opts: ServerOpts, q: URLSearchParams) {
+  const daysRaw = Number(q.get("days") ?? "30");
+  const days = Number.isFinite(daysRaw) && daysRaw > 0 && daysRaw <= 365 ? Math.floor(daysRaw) : 30;
+  const since = new Date(Date.now() - (days - 1) * 86400_000);
+  const sinceDate = since.toISOString().slice(0, 10);
+  const series = opts.store.getDailyTotals(sinceDate);
+  // Fill in zero entries for days that had no brews, so the chart has a
+  // contiguous timeline.
+  const have = new Map(series.map(s => [s.date, s]));
+  const filled: Array<{ date: string; cups: number; co2_g: number }> = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date(since.getTime() + i * 86400_000);
+    const key = d.toISOString().slice(0, 10);
+    filled.push(have.get(key) ?? { date: key, cups: 0, co2_g: 0 });
+  }
+  res.statusCode = 200;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.end(JSON.stringify({ days, series: filled }));
+}
+
+function sendDrinks(res: ServerResponse, opts: ServerOpts, q: URLSearchParams) {
+  const monthQ = q.get("month");
+  const month = monthQ && /^\d{4}-\d{2}$/.test(monthQ)
+    ? monthQ
+    : new Date().toISOString().slice(0, 7);
+  const rows = opts.store.getByDrinkType(month);
+  const total = rows.reduce((s, r) => s + r.co2_g, 0);
+  const totalCups = rows.reduce((s, r) => s + r.cups, 0);
+  res.statusCode = 200;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.end(JSON.stringify({
+    month,
+    total: { cups: totalCups, co2_g: total },
+    drinks: rows.map(r => ({
+      type: r.drinkType,
+      displayName: humanizeType(r.drinkType),
+      cups: r.cups,
+      co2_g: r.co2_g,
+      shareOfCo2: total > 0 ? r.co2_g / total : 0,
+    })),
+  }));
 }
 
 function sendState(res: ServerResponse, opts: ServerOpts) {
