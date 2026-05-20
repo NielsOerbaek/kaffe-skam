@@ -1,0 +1,21 @@
+# Secrets and machine identity
+.token
+.machine_id
+
+# Local runtime / scratch
+.superpowers/
+data/
+*.sqlite
+*.sqlite-journal
+*.db
+
+# Node
+node_modules/
+dist/
+build/
+.npm
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/
