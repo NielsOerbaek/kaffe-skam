@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kaffe-skam</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <main class="landscape" id="root">
+    <section class="pane left">
+      <div class="label">Today's coffee CO₂eq</div>
+      <div class="hero" id="today-co2">—</div>
+      <div class="sub" id="today-equiv">&nbsp;</div>
+      <div class="meta">
+        <div><div class="label">Cups</div><div class="n" id="today-cups">—</div></div>
+        <div><div class="label">This month</div><div class="n" id="month-co2">—</div></div>
+      </div>
+    </section>
+    <div class="divider"></div>
+    <section class="pane right" id="last-brew-pane">
+      <div class="label" id="last-label">Last brew</div>
+      <div class="drink-name" id="drink-name">—</div>
+      <div class="composition" id="composition">&nbsp;</div>
+      <div class="delta-row">
+        <div class="delta" id="delta">—</div>
+        <div class="vs" id="vs">&nbsp;</div>
+      </div>
+      <div class="bar-comparison">
+        <div class="bc-row">
+          <div class="bc-name">Coffee</div>
+          <div class="bc-barwrap"><div class="bc-barfill" id="coffee-bar"></div></div>
+          <div class="bc-v" id="coffee-v">—</div>
+        </div>
+        <div class="bc-row current">
+          <div class="bc-name">This brew</div>
+          <div class="bc-barwrap"><div class="bc-barfill" id="brew-bar"></div></div>
+          <div class="bc-v" id="brew-v">—</div>
+        </div>
+      </div>
+      <div class="stale-badge" id="stale-badge" hidden>data stale</div>
+    </section>
+  </main>
+  <script src="/static/app.js"></script>
+</body>
+</html>

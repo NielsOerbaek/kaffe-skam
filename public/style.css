@@ -1,0 +1,54 @@
+:root {
+  --bg: #1c1c1f;
+  --fg: #e8e6df;
+  --muted: #888;
+  --divider: #333;
+  --accent: #d2a96c;
+  --up: #e88a5c;
+  --down: #93c47d;
+  --bar-bg: #2a2a2d;
+  --bar-default: #555;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--fg);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+
+.landscape {
+  height: 100vh;
+  padding: 4vh 4vw;
+  display: grid;
+  grid-template-columns: 1fr 1px 1.2fr;
+  gap: 4vw;
+}
+.divider { background: var(--divider); }
+
+.pane { display: flex; flex-direction: column; gap: 1.5vh; }
+.label { font-size: 1.4vh; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+
+.left .hero { font-size: 16vh; font-weight: 700; line-height: 1; letter-spacing: -0.04em; color: var(--accent); }
+.left .sub  { font-size: 2.2vh; color: #b0aea9; }
+.left .meta { margin-top: auto; display: flex; gap: 4vw; }
+.left .meta .n { font-size: 4vh; font-weight: 600; }
+
+.right .drink-name { font-size: 6vh; font-weight: 600; letter-spacing: -0.02em; }
+.right .composition { color: #b0aea9; font-size: 1.8vh; }
+.right .delta-row { display: flex; align-items: baseline; gap: 1.4vw; margin-top: 1vh; }
+.right .delta { font-size: 8vh; font-weight: 700; }
+.right .delta.up   { color: var(--up); }
+.right .delta.down { color: var(--down); }
+.right .vs { font-size: 1.8vh; color: var(--muted); }
+
+.bar-comparison { margin-top: auto; display: flex; flex-direction: column; gap: 1.4vh; }
+.bc-row { display: grid; grid-template-columns: 12vw 1fr 8vw; align-items: center; gap: 1.5vw; font-size: 1.8vh; color: #b0aea9; }
+.bc-barwrap { height: 1.6vh; background: var(--bar-bg); border-radius: 0.8vh; overflow: hidden; }
+.bc-barfill { height: 100%; background: var(--bar-default); transition: width 600ms ease; }
+.bc-row.current .bc-barfill { background: var(--accent); }
+.bc-v { text-align: right; }
+
+.stale-badge {
+  position: absolute; top: 2vh; right: 3vw;
+  background: #5c1f1f; color: #fff;
+  padding: 0.6vh 1vw; border-radius: 0.8vh;
+  font-size: 1.4vh; letter-spacing: 0.05em; text-transform: uppercase;
+}
