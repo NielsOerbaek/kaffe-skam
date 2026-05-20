@@ -3,7 +3,7 @@
 // terracotta. Editorial styling matches the rest of the app.
 
 const DA_MONTHS = ["jan","feb","mar","apr","maj","jun","jul","aug","sep","okt","nov","dec"];
-const state = { weeks: [], metric: "co2", chart: null };
+const state = { weeks: [], avgWeek: null, avgDay: null, metric: "co2", chart: null };
 
 function fmtG(g) {
   if (g >= 1000) return (g / 1000).toFixed(1).replace(".", ",") + " kg";
@@ -72,28 +72,48 @@ function render() {
     state.chart.data.datasets[0].pointBorderColor = pointStroke;
     state.chart.data.datasets[0].pointRadius = pointRadii;
     state.chart.options.scales.y.ticks.callback = yLabel;
+    // Update the dashed reference line too (it's the second dataset)
+    const avgValue = state.metric === "co2" ? state.avgWeek?.co2_g : state.avgWeek?.cups;
+    if (state.chart.data.datasets[1]) {
+      state.chart.data.datasets[1].data = labels.map(() => avgValue ?? null);
+    }
     state.chart.update();
   } else {
+    const avgValue = state.metric === "co2" ? state.avgWeek?.co2_g : state.avgWeek?.cups;
     state.chart = new Chart(ctx, {
       type: "line",
       data: {
         labels,
-        datasets: [{
-          data: values,
-          borderColor: fg,
-          backgroundColor: "rgba(20, 20, 20, 0.06)",
-          borderWidth: 1.6,
-          tension: 0.35,
-          cubicInterpolationMode: "monotone",
-          fill: true,
-          pointBackgroundColor: pointFill,
-          pointBorderColor: pointStroke,
-          pointRadius: pointRadii,
-          pointHoverRadius: 5,
-          pointHoverBackgroundColor: fg,
-          pointHoverBorderColor: fg,
-          pointHoverBorderWidth: 0,
-        }],
+        datasets: [
+          {
+            data: values,
+            borderColor: fg,
+            backgroundColor: "rgba(20, 20, 20, 0.06)",
+            borderWidth: 1.6,
+            tension: 0.35,
+            cubicInterpolationMode: "monotone",
+            fill: true,
+            pointBackgroundColor: pointFill,
+            pointBorderColor: pointStroke,
+            pointRadius: pointRadii,
+            pointHoverRadius: 5,
+            pointHoverBackgroundColor: fg,
+            pointHoverBorderColor: fg,
+            pointHoverBorderWidth: 0,
+          },
+          {
+            // Horizontal reference line at the average WEEKLY value
+            label: "Gennemsnit",
+            data: labels.map(() => avgValue ?? null),
+            borderColor: muted,
+            borderDash: [4, 4],
+            borderWidth: 1,
+            pointRadius: 0,
+            pointHoverRadius: 0,
+            fill: false,
+            tension: 0,
+          },
+        ],
       },
       options: {
         responsive: true,
@@ -169,14 +189,21 @@ function render() {
     });
   }
 
+  const tot = `${totalCups(weeks).toLocaleString("da-DK")} kopper · ${fmtG(totalCo2(weeks))} CO₂`;
+  const avg = state.avgDay
+    ? `Den gennemsnitlige dag: ${Math.round(state.avgDay.cups).toLocaleString("da-DK")} kopper · ${fmtG(state.avgDay.co2_g)} CO₂`
+    : "";
   document.getElementById("page-stats").innerHTML =
-    `<span class="stat-line">${totalCups(weeks).toLocaleString("da-DK")} kopper · ${fmtG(totalCo2(weeks))} CO₂</span>`;
+    `<span class="stat-line">${tot}</span>` +
+    (avg ? `<span class="stat-line avg-stat">${avg}</span>` : "");
 }
 
 async function load() {
   const r = await fetch("/api/timeline?weeks=52", { cache: "no-store" });
   const j = await r.json();
   state.weeks = j.series;
+  state.avgWeek = j.averagePerWeek ?? null;
+  state.avgDay  = j.averagePerDay  ?? null;
   render();
 }
 

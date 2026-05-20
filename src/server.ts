@@ -77,7 +77,26 @@ function sendTimeline(res: ServerResponse, opts: ServerOpts, q: URLSearchParams)
       const key = localDateString(ws);
       filled.push(have.get(key) ?? { weekStart: key, cups: 0, co2_g: 0 });
     }
-    res.end(JSON.stringify({ bucket: "week", weeks, series: filled }));
+    // Averages: count only weeks/days that had at least one cup so empty
+    // calendar weeks (e.g. Christmas) don't drag the "average day" down.
+    const activeWeeks = filled.filter(w => w.cups > 0);
+    const totalCups = filled.reduce((s, w) => s + w.cups, 0);
+    const totalCo2  = filled.reduce((s, w) => s + w.co2_g, 0);
+    const avgWeekCups = activeWeeks.length ? totalCups / activeWeeks.length : 0;
+    const avgWeekCo2  = activeWeeks.length ? totalCo2 / activeWeeks.length : 0;
+    // Approximate active days at 5 per active week (Danish office calendar).
+    // Empty days within an "active" week (e.g. weekend) don't get counted.
+    const avgDayCups = activeWeeks.length ? totalCups / (activeWeeks.length * 5) : 0;
+    const avgDayCo2  = activeWeeks.length ? totalCo2 / (activeWeeks.length * 5) : 0;
+
+    res.end(JSON.stringify({
+      bucket: "week",
+      weeks,
+      series: filled,
+      averagePerWeek: { cups: avgWeekCups, co2_g: avgWeekCo2 },
+      averagePerDay:  { cups: avgDayCups,  co2_g: avgDayCo2 },
+      activeWeeks: activeWeeks.length,
+    }));
     return;
   }
 
