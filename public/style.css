@@ -177,24 +177,22 @@ body::after {
   font-feature-settings: "tnum" 1, "lnum" 1, "ss01";
 }
 .right .delta-line {
-  display: flex; align-items: baseline; gap: 1.2vw;
-  margin-top: 0.8vh;
-  padding-bottom: 0;
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.6vw;
+  margin-top: 1.4vh;
 }
 .right .delta-inline {
-  font-size: 4vh;
-  font-weight: 300;
-  letter-spacing: -0.02em;
-  font-feature-settings: "tnum" 1, "lnum" 1;
+  font-size: clamp(20px, 3.4vh, 32px);
+  font-weight: 400;
+  letter-spacing: -0.005em;
+  color: var(--fg);
 }
 .right .delta-inline.up   { color: var(--up); }
 .right .delta-inline.down { color: var(--down); }
 .right .vs {
-  font-size: 1.8vh;
+  font-size: clamp(20px, 3.4vh, 32px);
   color: var(--muted);
-  letter-spacing: 0.2em;
-  text-transform: uppercase;
-  font-weight: 500;
+  font-weight: 300;
+  letter-spacing: -0.005em;
 }
 
 /* "CO₂" tail on big numbers — smaller, muted, lifted to the cap-height baseline */

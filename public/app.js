@@ -33,7 +33,7 @@ function brewDisplayName(brew) {
 
 function fmtG(g) {
   if (g == null) return "—";
-  if (g >= 1000) return (g / 1000).toFixed(2).replace(".", ",") + " kg";
+  if (g >= 1000) return (g / 1000).toFixed(1).replace(".", ",") + " kg";
   return Math.round(g) + " g";
 }
 function escape(s) {
@@ -124,12 +124,40 @@ function fmtBrewTime(machineTs) {
   return m ? `${m[1]}.${m[2]}` : "—";
 }
 
-// Delta as percentage of baseline. Rounded to nearest %; uses minus sign for negatives.
-function fmtDeltaPct(delta, baseline) {
-  if (!baseline || !isFinite(baseline)) return "—";
-  const pct = Math.round((delta / baseline) * 100);
-  if (pct === 0) return "±0 %";
-  return (pct > 0 ? "+" : "−") + Math.abs(pct) + " %";
+// Phrase form of the brew's CO₂ as a multiple of a plain Coffee. Returns
+// { amount, rest, direction } where `amount` is the emphasised opening
+// ("Knap 15 gange så meget"), `rest` is the muted continuation
+// ("som en kop sort kaffe"), and direction picks the up/down/neutral colour.
+const DA_NUMBERS = ["nul","en","to","tre","fire","fem","seks","syv","otte","ni","ti","elleve","tolv"];
+function fmtMultiplierDa(co2G, baseline) {
+  if (!baseline || !isFinite(baseline) || baseline <= 0) {
+    return { amount: "—", rest: "", direction: "neutral" };
+  }
+  const ratio = co2G / baseline;
+  if (!isFinite(ratio) || ratio < 0) return { amount: "—", rest: "", direction: "neutral" };
+
+  if (ratio < 0.05) return { amount: "Næsten ingenting", rest: "i forhold til en kop sort kaffe", direction: "down" };
+  if (ratio < 0.95) {
+    const pct = Math.max(1, Math.round(ratio * 100));
+    return { amount: `Kun ${pct} %`, rest: "af en kop sort kaffe", direction: "down" };
+  }
+  if (ratio <= 1.05) return { amount: "Stort set det samme", rest: "som en kop sort kaffe", direction: "neutral" };
+  if (ratio < 1.4)   return { amount: "Lidt mere",            rest: "end en kop sort kaffe", direction: "up" };
+  if (ratio < 1.85)  return { amount: "Halvanden gang så meget", rest: "som en kop sort kaffe", direction: "up" };
+
+  const n = Math.round(ratio);
+  const diff = ratio - n;
+  let qualifier = "";
+  if (diff <= -0.15)      qualifier = "Knap ";
+  else if (diff < -0.04)  qualifier = "Næsten ";
+  else if (diff >= 0.15)  qualifier = "Godt ";
+  else if (diff > 0.04)   qualifier = "Lidt over ";
+
+  const nWord = n <= 12 ? DA_NUMBERS[n] : String(n);
+  if (n === 2) {
+    return { amount: `${qualifier}${qualifier ? "dobbelt" : "Dobbelt"} så meget`, rest: "som en kop sort kaffe", direction: "up" };
+  }
+  return { amount: `${qualifier || ""}${qualifier ? nWord : nWord.charAt(0).toUpperCase() + nWord.slice(1)} gange så meget`, rest: "som en kop sort kaffe", direction: "up" };
 }
 
 async function refresh() {
@@ -194,12 +222,12 @@ function render(s) {
 
   setBigNumber($("brew-co2"), latest.co2G);
 
-  const d = latest.deltaVsCoffee;
-  const baseline = latest.co2G - d;
-  $("delta").textContent = fmtDeltaPct(d, baseline);
-  $("delta").classList.toggle("up", d >= 0);
-  $("delta").classList.toggle("down", d < 0);
-  $("vs").textContent = `vs. sort kaffe (${fmtG(baseline)})`;
+  const baseline = latest.co2G - latest.deltaVsCoffee;
+  const phrase = fmtMultiplierDa(latest.co2G, baseline);
+  $("delta").textContent = phrase.amount;
+  $("delta").classList.toggle("up",   phrase.direction === "up");
+  $("delta").classList.toggle("down", phrase.direction === "down");
+  $("vs").textContent = phrase.rest;
 
   renderPrevious(previous);
 }
