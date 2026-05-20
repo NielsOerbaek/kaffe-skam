@@ -56,7 +56,11 @@ function render() {
   const labels = weeks.map(w => weekLabel(w.weekStart));
   const values = weeks.map(w => state.metric === "co2" ? w.co2_g : w.cups);
   const lastIdx = weeks.length - 1;
-  const colors = weeks.map((_, i) => i === lastIdx ? accent : "rgba(20, 20, 20, 0.55)");
+
+  // Today's week gets a visible accent dot; the rest stays invisible until hover.
+  const pointRadii   = weeks.map((_, i) => i === lastIdx ? 5 : 0);
+  const pointFill    = weeks.map((_, i) => i === lastIdx ? accent : "transparent");
+  const pointStroke  = weeks.map((_, i) => i === lastIdx ? accent : "transparent");
 
   const isCo2 = state.metric === "co2";
   const yLabel = (v) => isCo2 ? fmtG(v) : Math.round(v).toLocaleString("da-DK");
@@ -64,23 +68,31 @@ function render() {
   if (state.chart) {
     state.chart.data.labels = labels;
     state.chart.data.datasets[0].data = values;
-    state.chart.data.datasets[0].backgroundColor = colors;
-    state.chart.data.datasets[0].borderColor = colors;
+    state.chart.data.datasets[0].pointBackgroundColor = pointFill;
+    state.chart.data.datasets[0].pointBorderColor = pointStroke;
+    state.chart.data.datasets[0].pointRadius = pointRadii;
     state.chart.options.scales.y.ticks.callback = yLabel;
     state.chart.update();
   } else {
     state.chart = new Chart(ctx, {
-      type: "bar",
+      type: "line",
       data: {
         labels,
         datasets: [{
           data: values,
-          backgroundColor: colors,
-          borderColor: colors,
-          borderWidth: 0,
-          borderRadius: 2,
-          borderSkipped: false,
-          maxBarThickness: 22,
+          borderColor: fg,
+          backgroundColor: "rgba(20, 20, 20, 0.06)",
+          borderWidth: 1.6,
+          tension: 0.35,
+          cubicInterpolationMode: "monotone",
+          fill: true,
+          pointBackgroundColor: pointFill,
+          pointBorderColor: pointStroke,
+          pointRadius: pointRadii,
+          pointHoverRadius: 5,
+          pointHoverBackgroundColor: fg,
+          pointHoverBorderColor: fg,
+          pointHoverBorderWidth: 0,
         }],
       },
       options: {
@@ -88,9 +100,12 @@ function render() {
         maintainAspectRatio: false,
         animation: { duration: 600, easing: "easeOutCubic" },
         layout: { padding: { top: 10, right: 8, bottom: 0, left: 4 } },
+        interaction: { mode: "index", intersect: false },
         plugins: {
           legend: { display: false },
           tooltip: {
+            mode: "index",
+            intersect: false,
             backgroundColor: fg,
             titleColor: "#f3efe7",
             bodyColor: "#f3efe7",
