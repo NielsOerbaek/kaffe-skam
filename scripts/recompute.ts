@@ -64,7 +64,7 @@ function main() {
       } else {
         try {
           const raw = JSON.parse(r.raw_json) as { milk?: { consumption?: number } | null };
-          milkMl = raw.milk?.consumption ?? 0;
+          milkMl = (raw.milk?.consumption ?? 0) * cfg.milkUnitMl;
         } catch { milkMl = 0; }
       }
 
@@ -74,7 +74,42 @@ function main() {
     }
   });
   tx();
-  console.log(`updated ${updated} rows.`);
+  console.log(`updated ${updated} committed brews.`);
+
+  // Also recompute any pending brews (one per machine at most) so they reflect
+  // current config before they get committed.
+  let pendingUpdated = 0;
+  for (const p of store.getAllPending()) {
+    const productName = p.productKey != null
+      ? store.getProductName(p.machineId, p.productKey)
+      : null;
+    const baseBeans = beansGForBrew({
+      productName,
+      type: p.drinkType,
+      isDouble: p.isDouble,
+      byProduct: cfg.beansByProduct,
+      byType: cfg.beansDefaultsG,
+    });
+    const k = ks.get(p.machineId) ?? 1.0;
+    const beansG = applyCalibration(baseBeans, k);
+
+    let milkMl: number;
+    if (productName != null && cfg.milkByProduct[productName] != null) {
+      milkMl = cfg.milkByProduct[productName]!;
+    } else if (productName != null && cfg.zeroMilkProducts.includes(productName)) {
+      milkMl = 0;
+    } else {
+      try {
+        const raw = JSON.parse(p.rawJson) as { milk?: { consumption?: number } | null };
+        milkMl = (raw.milk?.consumption ?? 0) * cfg.milkUnitMl;
+      } catch { milkMl = 0; }
+    }
+
+    const co2G = co2ForBrew(beansG, milkMl, cfg.co2);
+    store.setPending({ ...p, beansG, milkMl, co2G });
+    pendingUpdated++;
+  }
+  console.log(`updated ${pendingUpdated} pending brews.`);
   store.close();
 }
 

@@ -23,6 +23,7 @@ const baseConfig: Config = {
   beansDefaultsG: { ESPRESSO: 7, CAPPUCCINO: 7, _default: 7 },
   beansByProduct: {},
   milkByProduct: {},
+  milkUnitMl: 1, // test uses raw consumption as ml
   zeroMilkProducts: [],
   productNameOverrides: {},
   calibration: { minBrewsBetweenCalibrations: 2, maxScaleDelta: 0.5 },

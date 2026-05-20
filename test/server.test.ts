@@ -13,6 +13,7 @@ const CFG: Config = {
   beansDefaultsG: { ESPRESSO: 7, _default: 7 },
   beansByProduct: {},
   milkByProduct: {},
+  milkUnitMl: 12.5,
   zeroMilkProducts: [],
   productNameOverrides: {},
   calibration: { minBrewsBetweenCalibrations: 50, maxScaleDelta: 0.5 },
