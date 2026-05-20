@@ -126,6 +126,9 @@ describe("Poller", () => {
     expect(pending?.id).toBe(1);
     expect(pending?.milkMl).toBe(30);
     expect(pending?.splashIds).toEqual([2]);
+    // Splash-merged brews must recompute CO₂ from the new milk total:
+    // 7g beans × 1.24 + 30ml × 1.4 = 8.68 + 42 = 50.68
+    expect(pending?.co2G).toBeCloseTo(50.68, 2);
   });
 
   it("computes co2 with config factors and tags the brew with machineId", async () => {

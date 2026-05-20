@@ -21,7 +21,19 @@ export interface MergeStepResult {
 
 export interface MergeDeps {
   toPending: (ph: ProductHistory, splashWindowMs: number) => PendingBrew;
+  // Optional: how to fold a splash into the existing pending brew. The caller
+  // (poller) provides one that applies the milk-unit multiplier and re-computes
+  // CO₂. Default is a naive add (used by tests).
+  applySplash?: (pending: PendingBrew, splash: ProductHistory) => PendingBrew;
 }
+
+// Default raw add — used by tests; production injects an applySplash that
+// applies the milk-unit multiplier and recomputes CO₂.
+const defaultApplySplash = (pending: PendingBrew, splash: ProductHistory): PendingBrew => ({
+  ...pending,
+  milkMl: pending.milkMl + (splash.milk?.consumption ?? 0),
+  splashIds: [...pending.splashIds, splash.id],
+});
 
 // Default builder used when callers don't inject `toPending`. The result has
 // `machineId = 0` and zeroed beansG/co2G — the poller always overrides this
@@ -64,16 +76,11 @@ export function mergeStep(
   const withinWindow = incomingMs <= expiresMs;
 
   if (isSplash && withinWindow) {
-    const splashMilk = incoming.milk?.consumption ?? 0;
     const newExpires = toLocalISOString(new Date(incomingMs + splashWindowMs));
+    const applied = (deps.applySplash ?? defaultApplySplash)(pending, incoming);
     return {
       commit: null,
-      newPending: {
-        ...pending,
-        milkMl: pending.milkMl + splashMilk,
-        splashIds: [...pending.splashIds, incoming.id],
-        expiresAt: newExpires,
-      },
+      newPending: { ...applied, expiresAt: newExpires },
       mergedSplash: true,
     };
   }

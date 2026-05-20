@@ -64,12 +64,6 @@ const EQUIVALENCES = [
     if (km < 0.1) return "≈ et par meter i bil";
     return `≈ ${fmtDa(km, km < 10 ? 1 : 0)} km i bil`;
   },
-  // ~50 g CO₂ per slice of rye bread (LCA average for Danish rugbrød)
-  (g) => {
-    if (g <= 0) return "";
-    const n = Math.max(1, Math.round(g / 50));
-    return `≈ ${fmtDa(n)} skiver rugbrød`;
-  },
   // ~80 g CO₂ per banana shipped from Costa Rica
   (g) => {
     if (g <= 0) return "";
@@ -259,10 +253,10 @@ function updateEquivalence() {
   setTimeout(() => {
     el.textContent = text || " ";
     el.classList.remove("fading");
-  }, 320);
+  }, 600);
 }
 
 refresh();
 setInterval(refresh, REFRESH_MS);
 setInterval(updateLastLabel, 10_000);
-setInterval(updateEquivalence, 6_000);
+setInterval(updateEquivalence, 10_000);

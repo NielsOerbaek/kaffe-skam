@@ -82,6 +82,7 @@ export class Poller {
     for (const ph of brews) {
       const r = mergeStep(ph, pending, this.cfg.polling.splashWindowMs, {
         toPending: (raw) => this.toPending(raw, k, m.machineId),
+        applySplash: (pendingBrew, splash) => this.applySplash(pendingBrew, splash),
       });
       if (r.commit) this.store.insertBrew(r.commit);
       pending = r.newPending;
@@ -137,6 +138,22 @@ export class Poller {
       this.store.setMeta(this.keyAnchorSummedG(m.machineId), String(summedNow));
       this.store.setMeta(this.keyAnchorBrewCount(m.machineId), String(countNow));
     }
+  }
+
+  // Fold a splash brew into the pending one: add milk (converted via
+  // milkUnitMl) and recompute the CO₂ from the new total. beansG stays
+  // — only the primary brew dispenses beans.
+  private applySplash(pending: PendingBrew, splash: ProductHistory): PendingBrew {
+    const rawConsumption = splash.milk?.consumption ?? 0;
+    const addedMl = rawConsumption * this.cfg.milkUnitMl;
+    const milkMl = pending.milkMl + addedMl;
+    const co2G = co2ForBrew(pending.beansG, milkMl, this.cfg.co2);
+    return {
+      ...pending,
+      milkMl,
+      co2G,
+      splashIds: [...pending.splashIds, splash.id],
+    };
   }
 
   private toPending(ph: ProductHistory, k: number, machineId: number): PendingBrew {

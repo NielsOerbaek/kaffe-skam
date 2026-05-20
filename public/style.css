@@ -134,7 +134,7 @@ body::after {
 .left .equiv {
   margin-top: 0.6vh;
   opacity: 1;
-  transition: opacity 320ms ease;
+  transition: opacity 600ms ease;
 }
 .left .equiv.fading { opacity: 0; }
 
