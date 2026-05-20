@@ -50,6 +50,46 @@ function fmtClock(d = new Date()) {
   const p = (n) => String(n).padStart(2, "0");
   return `${p(d.getHours())}.${p(d.getMinutes())}`;
 }
+
+// "Today's CO₂ is the same as …" — a small library of relatable equivalents
+// that rotate every ~6 s. Functions return a Danish phrase, given grams of CO₂.
+function fmtDa(n, decimals = 0) {
+  return n.toLocaleString("da-DK", { maximumFractionDigits: decimals, minimumFractionDigits: decimals });
+}
+const EQUIVALENCES = [
+  // ~200 g CO₂ per km in an average car
+  (g) => {
+    if (g <= 0) return "";
+    const km = g / 200;
+    if (km < 0.1) return "≈ et par meter i bil";
+    return `≈ ${fmtDa(km, km < 10 ? 1 : 0)} km i bil`;
+  },
+  // ~50 g CO₂ per slice of rye bread (LCA average for Danish rugbrød)
+  (g) => {
+    if (g <= 0) return "";
+    const n = Math.max(1, Math.round(g / 50));
+    return `≈ ${fmtDa(n)} skiver rugbrød`;
+  },
+  // ~80 g CO₂ per banana shipped from Costa Rica
+  (g) => {
+    if (g <= 0) return "";
+    const n = Math.max(1, Math.round(g / 80));
+    return `≈ ${fmtDa(n)} ${n === 1 ? "banan" : "bananer"} fra Costa Rica`;
+  },
+  // ~100 g CO₂ per hour of Netflix streaming on a TV
+  (g) => {
+    if (g <= 0) return "";
+    const h = g / 100;
+    if (h < 0.5) return "";
+    return `≈ ${fmtDa(h, h < 10 ? 1 : 0)} ${Math.round(h) === 1 ? "time" : "timer"} Netflix`;
+  },
+  // ~50 g CO₂ per minute in a hot shower (gas-heated)
+  (g) => {
+    if (g <= 0) return "";
+    const m = Math.max(1, Math.round(g / 50));
+    return `≈ ${fmtDa(m)} ${m === 1 ? "minut" : "minutter"} varmt bad`;
+  },
+];
 const DA_MONTHS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
 const DA_MONTHS_FULL = ["januar", "februar", "marts", "april", "maj", "juni", "juli", "august", "september", "oktober", "november", "december"];
 function fmtBrewTs(machineTs) {
@@ -112,6 +152,9 @@ function render(s) {
   // Left top — today's CO₂ as the hero; cups count as the supporting line
   setBigNumber($("today-co2"), s.today.co2_g);
   $("today-cups-line").textContent = `${s.today.cups.toLocaleString("da-DK")} ${s.today.cups === 1 ? "kop" : "kopper"} i dag`;
+  // Stash today's CO₂ so the equivalence ticker can re-render between fetches
+  todayCo2g = s.today.co2_g;
+  updateEquivalence();
 
   // Left bottom — "<Month> <Year>" header + month-to-date stats
   $("month-header").textContent = fmtMonthHeader();
@@ -193,6 +236,27 @@ function updateLastLabel() {
   $("last-label").textContent = rel ? `Seneste bryg · ${abs} · ${rel}` : `Seneste bryg · ${abs}`;
 }
 
+// Cross-fading equivalence ticker
+let todayCo2g = 0;
+let equivIdx = 0;
+function updateEquivalence() {
+  const el = $("today-equiv");
+  if (!el) return;
+  // Pick the next non-empty equivalent so we don't show a blank during cycles
+  let text = "";
+  for (let i = 0; i < EQUIVALENCES.length; i++) {
+    const fn = EQUIVALENCES[(equivIdx + i) % EQUIVALENCES.length];
+    text = fn(todayCo2g);
+    if (text) { equivIdx = (equivIdx + i + 1) % EQUIVALENCES.length; break; }
+  }
+  el.classList.add("fading");
+  setTimeout(() => {
+    el.textContent = text || " ";
+    el.classList.remove("fading");
+  }, 320);
+}
+
 refresh();
 setInterval(refresh, REFRESH_MS);
 setInterval(updateLastLabel, 10_000);
+setInterval(updateEquivalence, 6_000);

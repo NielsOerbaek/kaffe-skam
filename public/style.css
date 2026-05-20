@@ -131,6 +131,12 @@ body::after {
   letter-spacing: 0.01em;
   font-weight: 300;
 }
+.left .equiv {
+  margin-top: 0.6vh;
+  opacity: 1;
+  transition: opacity 320ms ease;
+}
+.left .equiv.fading { opacity: 0; }
 
 /* ────────────────── right pane ────────────────── */
 .right .drink-line {
