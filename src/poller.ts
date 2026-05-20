@@ -184,23 +184,26 @@ export class Poller {
   }
 
   // Fetch and persist the product-name catalog for every configured machine.
-  // Safe to call repeatedly — upserts by (machineId, productKey).
-  // After fetching from the API, config.productNameOverrides is applied so
-  // unnamed slots (e.g. keyId=61 "Hot Water") still get a friendly label.
+  // The Eversys API uses two different indexes for the same product in two
+  // different endpoints: /product-parameters returns names keyed by
+  // `productId`, but /products (brew history) reports `keyId = productId + 1`.
+  // We store names under the `keyId`, since that's what brews carry, so the
+  // join in getRecentBrews / getByDrinkType just works.
+  //
+  // productNameOverrides in config are also keyed by keyId; applied last so
+  // they win over the API's name.
   async refreshProducts(): Promise<void> {
     for (const m of this.machines) {
       for (const side of ["LEFT", "RIGHT"] as const) {
         try {
           const products = await m.client.fetchProducts(side);
           for (const p of products) {
-            this.store.upsertProduct(m.machineId, p.productId, p.name);
+            this.store.upsertProduct(m.machineId, p.productId + 1, p.name);
           }
         } catch (e) {
           console.warn(`refreshProducts ${m.machineId}/${side} failed:`, (e as Error).message);
         }
       }
-      // Apply manual overrides last, so they win over an API-fetched empty
-      // or generic name. Keyed by keyId (stringified) in config.
       for (const [keyStr, name] of Object.entries(this.cfg.productNameOverrides)) {
         const keyId = Number(keyStr);
         if (Number.isInteger(keyId)) this.store.upsertProduct(m.machineId, keyId, name);

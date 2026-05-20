@@ -85,6 +85,13 @@ export class Store {
       });
       tx();
     }
+
+    // v4: clear stale products so the next poller.refreshProducts() repopulates
+    // with the corrected mapping (keyId = productId + 1).
+    if (this.getMeta("products_shifted_v1") == null) {
+      this.db.exec(`DELETE FROM products`);
+      this.setMeta("products_shifted_v1", "1");
+    }
   }
 
   close() { this.db.close(); }
