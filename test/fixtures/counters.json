@@ -1,0 +1,8 @@
+{
+  "machineId": 123,
+  "machineTimestamp": "2026-05-20T10:00:00",
+  "serverTimestamp": "2026-05-20T08:00:00Z",
+  "lastReset": "2026-01-01T00:00:00",
+  "beans": { "totalQuantity": 12.345 },
+  "water": { "totalQuantity": 456.7 }
+}

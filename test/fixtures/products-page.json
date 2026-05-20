@@ -1,0 +1,23 @@
+[
+  {
+    "id": 1001,
+    "machineTimestamp": "2026-05-20T10:00:00",
+    "type": "ESPRESSO",
+    "isDouble": 0,
+    "milk": { "consumption": 0 }
+  },
+  {
+    "id": 1002,
+    "machineTimestamp": "2026-05-20T10:01:30",
+    "type": "CAPPUCCINO",
+    "isDouble": 0,
+    "milk": { "consumption": 120 }
+  },
+  {
+    "id": 1003,
+    "machineTimestamp": "2026-05-20T10:02:00",
+    "type": "MILK",
+    "isDouble": 0,
+    "milk": { "consumption": 20 }
+  }
+]
