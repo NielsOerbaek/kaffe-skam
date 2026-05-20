@@ -1,0 +1,23 @@
+[Unit]
+Description=Kaffe-skam coffee CO2 dashboard
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/kaffe-skam
+ExecStart=/usr/bin/node --import tsx/esm src/index.ts
+Restart=on-failure
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+User=kaffe
+Group=kaffe
+# Hardening
+NoNewPrivileges=yes
+ProtectSystem=strict
+ReadWritePaths=/opt/kaffe-skam/data
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target
