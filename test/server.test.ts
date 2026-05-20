@@ -1,0 +1,84 @@
+import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { Store } from "../src/store.ts";
+import { createServer } from "../src/server.ts";
+import type { Config } from "../src/config.ts";
+import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
+
+const CFG: Config = {
+  co2: { beansFactorGPerG: 1.24, milkFactorGPerMl: 1.4, coffeeBaselineG: 8.68 },
+  beansDefaultsG: { ESPRESSO: 7, _default: 7 },
+  calibration: { minBrewsBetweenCalibrations: 50, maxScaleDelta: 0.5 },
+  polling: { brewsIntervalMs: 5000, countersIntervalMs: 60000, splashWindowMs: 300000, backoffMs: [5000] },
+  server: { port: 0, stateRefreshMs: 3000 },
+  api: { baseUrl: "" },
+  token: "tok",
+  machineId: 123,
+};
+
+describe("server /api/state", () => {
+  let s: Store;
+  let server: Server;
+  let url: string;
+
+  beforeEach(async () => {
+    s = new Store(":memory:");
+    server = createServer({ store: s, config: CFG, publicDir: "" });
+    await new Promise<void>(r => server.listen(0, r));
+    const { port } = server.address() as AddressInfo;
+    url = `http://127.0.0.1:${port}`;
+  });
+
+  afterEach(async () => {
+    s.close();
+    await new Promise<void>(r => server.close(() => r()));
+  });
+
+  it("returns empty state when no brews", async () => {
+    const r = await fetch(`${url}/api/state`);
+    expect(r.status).toBe(200);
+    const j = await r.json();
+    expect(j.today.cups).toBe(0);
+    expect(j.lastBrew).toBeNull();
+  });
+
+  it("returns today + last brew shape", async () => {
+    s.insertBrew({
+      id: 1, machineTs: "2026-05-20T10:00:00",
+      localDate: "2026-05-20", localMonth: "2026-05",
+      drinkType: "CAPPUCCINO", isDouble: 0,
+      beansG: 7, milkMl: 120, co2G: 176.68,
+      splashIds: [2], rawJson: "{}",
+    });
+    s.setMeta("last_poll_ok_at", new Date().toISOString());
+
+    const r = await fetch(`${url}/api/state`);
+    const j = await r.json();
+    expect(j.lastBrew.type).toBe("CAPPUCCINO");
+    expect(j.lastBrew.displayName).toBe("Cappuccino");
+    expect(j.lastBrew.splashCount).toBe(1);
+    expect(j.lastBrew.deltaVsCoffee).toBeCloseTo(176.68 - 8.68, 2);
+    expect(j.stale).toBe(false);
+  });
+
+  it("marks stale=true when last_poll_ok_at is older than 60s", async () => {
+    s.setMeta("last_poll_ok_at", new Date(Date.now() - 120_000).toISOString());
+    const r = await fetch(`${url}/api/state`);
+    const j = await r.json();
+    expect(j.stale).toBe(true);
+  });
+
+  it("uses Pi-local today (date computed at request time)", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    s.insertBrew({
+      id: 1, machineTs: `${today}T10:00:00`,
+      localDate: today, localMonth: today.slice(0, 7),
+      drinkType: "ESPRESSO", isDouble: 0,
+      beansG: 7, milkMl: 0, co2G: 8.68,
+      splashIds: [], rawJson: "{}",
+    });
+    const r = await fetch(`${url}/api/state`);
+    const j = await r.json();
+    expect(j.today.cups).toBe(1);
+  });
+});
