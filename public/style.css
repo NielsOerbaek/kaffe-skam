@@ -200,24 +200,26 @@ body::before {
   grid-template-columns: 1fr;
 }
 
-/* ────────────────── corner status (live + clock) — top right, out of content ────────────────── */
+/* ────────────────── corner status (live + clock) — floating in top-right ────────────────── */
 .status {
   position: fixed;
-  top: 3.2vh; right: var(--pad-x);
-  display: flex; gap: 0.7vw;
-  z-index: 5;
+  top: 1.6vh; right: 1.4vw;
+  display: flex; gap: 0.5vw;
+  z-index: 8;
 }
 .status .chip {
-  padding: 0.85vh 1.3vw;
+  padding: 0.75vh 1.1vw;
   border: 1px solid var(--hairline);
   border-radius: 999px;
   color: var(--muted);
   letter-spacing: 0.2em;
-  font-size: 1.45vh;
+  font-size: 1.35vh;
   font-weight: 500;
   text-transform: uppercase;
-  background: rgba(243, 239, 231, 0.6);
-  backdrop-filter: blur(4px);
+  background: rgba(243, 239, 231, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 2px 12px rgba(20, 20, 20, 0.06);
 }
 .status .chip.alt {
   color: var(--fg);
