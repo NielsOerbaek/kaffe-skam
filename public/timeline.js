@@ -1,9 +1,9 @@
-// 30-day timeline bar chart, powered by Chart.js. Editorial styling:
-// muted bars in the body fg, today's bar in the up-accent terracotta,
-// hairline grid lines, General Sans labels.
+// 52-week timeline bar chart, powered by Chart.js. Each bar is one ISO
+// week (Monday-starting). Today's week is highlighted in the up-accent
+// terracotta. Editorial styling matches the rest of the app.
 
 const DA_MONTHS = ["jan","feb","mar","apr","maj","jun","jul","aug","sep","okt","nov","dec"];
-const state = { days: [], metric: "co2", chart: null };
+const state = { weeks: [], metric: "co2", chart: null };
 
 function fmtG(g) {
   if (g >= 1000) return (g / 1000).toFixed(1).replace(".", ",") + " kg";
@@ -16,18 +16,36 @@ function cssVar(name) {
   return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 }
 
-function formatDateDa(yyyymmdd) {
+function parseDate(yyyymmdd) {
   const [y, m, d] = yyyymmdd.split("-").map(Number);
-  return `${d}. ${DA_MONTHS[m - 1] ?? ""} ${y}`;
+  return new Date(y, (m - 1), d);
 }
-function shortDateDa(yyyymmdd) {
-  const [, m, d] = yyyymmdd.split("-").map(Number);
-  return `${d}. ${DA_MONTHS[m - 1] ?? ""}`;
+function addDays(dt, n) {
+  const out = new Date(dt);
+  out.setDate(out.getDate() + n);
+  return out;
+}
+function fmtDayMonth(dt) {
+  return `${dt.getDate()}. ${DA_MONTHS[dt.getMonth()] ?? ""}`;
+}
+function isoWeekNumber(dt) {
+  // ISO week: week containing the year's first Thursday is week 1
+  const d = new Date(Date.UTC(dt.getFullYear(), dt.getMonth(), dt.getDate()));
+  const dayNum = d.getUTCDay() || 7; // Mon=1..Sun=7
+  d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+  const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+}
+function weekLabel(weekStart) {
+  // "Uge N" if not first week of month; otherwise short month label "1. maj"
+  const dt = parseDate(weekStart);
+  const isFirstWeekOfMonth = dt.getDate() <= 7;
+  return isFirstWeekOfMonth ? `${dt.getDate()}. ${DA_MONTHS[dt.getMonth()]}` : `u${isoWeekNumber(dt)}`;
 }
 
 function render() {
-  const days = state.days;
-  if (days.length === 0) return;
+  const weeks = state.weeks;
+  if (weeks.length === 0) return;
 
   const ctx = document.getElementById("chart").getContext("2d");
   const fg = cssVar("--fg") || "#141414";
@@ -35,10 +53,10 @@ function render() {
   const hairline = cssVar("--hairline") || "rgba(20,20,20,0.18)";
   const accent = cssVar("--up") || "#8c4a1d";
 
-  const labels = days.map(d => shortDateDa(d.date));
-  const values = days.map(d => state.metric === "co2" ? d.co2_g : d.cups);
-  const colors = days.map((_, i) => i === days.length - 1 ? accent : "rgba(20, 20, 20, 0.55)");
-  const borderColors = days.map((_, i) => i === days.length - 1 ? accent : "rgba(20, 20, 20, 0.55)");
+  const labels = weeks.map(w => weekLabel(w.weekStart));
+  const values = weeks.map(w => state.metric === "co2" ? w.co2_g : w.cups);
+  const lastIdx = weeks.length - 1;
+  const colors = weeks.map((_, i) => i === lastIdx ? accent : "rgba(20, 20, 20, 0.55)");
 
   const isCo2 = state.metric === "co2";
   const yLabel = (v) => isCo2 ? fmtG(v) : Math.round(v).toLocaleString("da-DK");
@@ -47,7 +65,7 @@ function render() {
     state.chart.data.labels = labels;
     state.chart.data.datasets[0].data = values;
     state.chart.data.datasets[0].backgroundColor = colors;
-    state.chart.data.datasets[0].borderColor = borderColors;
+    state.chart.data.datasets[0].borderColor = colors;
     state.chart.options.scales.y.ticks.callback = yLabel;
     state.chart.update();
   } else {
@@ -58,11 +76,11 @@ function render() {
         datasets: [{
           data: values,
           backgroundColor: colors,
-          borderColor: borderColors,
+          borderColor: colors,
           borderWidth: 0,
           borderRadius: 2,
           borderSkipped: false,
-          maxBarThickness: 28,
+          maxBarThickness: 22,
         }],
       },
       options: {
@@ -82,12 +100,17 @@ function render() {
             displayColors: false,
             cornerRadius: 6,
             callbacks: {
-              title: (items) => formatDateDa(days[items[0].dataIndex].date),
+              title: (items) => {
+                const w = weeks[items[0].dataIndex];
+                const start = parseDate(w.weekStart);
+                const end = addDays(start, 6);
+                return `Uge ${isoWeekNumber(start)} · ${fmtDayMonth(start)} – ${fmtDayMonth(end)}`;
+              },
               label: (item) => {
-                const d = days[item.dataIndex];
+                const w = weeks[item.dataIndex];
                 return [
-                  `${d.cups.toLocaleString("da-DK")} kopper`,
-                  `${fmtG(d.co2_g)} CO₂`,
+                  `${w.cups.toLocaleString("da-DK")} kopper`,
+                  `${fmtG(w.co2_g)} CO₂`,
                 ];
               },
             },
@@ -100,14 +123,17 @@ function render() {
             ticks: {
               color: muted,
               font: { family: "General Sans", size: 11, weight: "400" },
-              autoSkip: true,
+              autoSkip: false,
               maxRotation: 0,
               minRotation: 0,
-              callback: (val, idx, ticks) => {
-                // Show ~8 labels evenly + the last one
-                const step = Math.max(1, Math.round(days.length / 8));
-                if (idx % step !== 0 && idx !== days.length - 1) return "";
-                return labels[idx];
+              callback: (val, idx) => {
+                // Label only weeks whose Monday falls within the first 7 days
+                // of a month — gives roughly one label per month.
+                const w = weeks[idx];
+                if (!w) return "";
+                const dt = parseDate(w.weekStart);
+                if (dt.getDate() <= 7) return `${DA_MONTHS[dt.getMonth()]}`.toUpperCase();
+                return "";
               },
             },
           },
@@ -129,13 +155,13 @@ function render() {
   }
 
   document.getElementById("page-stats").innerHTML =
-    `<span class="stat-line">${totalCups(days).toLocaleString("da-DK")} kopper · ${fmtG(totalCo2(days))} CO₂</span>`;
+    `<span class="stat-line">${totalCups(weeks).toLocaleString("da-DK")} kopper · ${fmtG(totalCo2(weeks))} CO₂</span>`;
 }
 
 async function load() {
-  const r = await fetch("/api/timeline?days=30", { cache: "no-store" });
+  const r = await fetch("/api/timeline?weeks=52", { cache: "no-store" });
   const j = await r.json();
-  state.days = j.series;
+  state.weeks = j.series;
   render();
 }
 

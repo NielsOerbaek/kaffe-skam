@@ -1,7 +1,7 @@
 import { createServer as nodeCreateServer, type IncomingMessage, type ServerResponse, type Server } from "node:http";
 import { readFileSync, existsSync } from "node:fs";
 import { join, extname, normalize } from "node:path";
-import type { Store } from "./store.ts";
+import { Store } from "./store.ts";
 import type { Config } from "./config.ts";
 import type { ApiState } from "./types.ts";
 import { humanizeType } from "./co2.ts";
@@ -46,25 +46,54 @@ function handleRequest(req: IncomingMessage, res: ServerResponse, opts: ServerOp
   res.statusCode = 404; res.end("not found");
 }
 
+function pad2(n: number): string { return String(n).padStart(2, "0"); }
+function localDateString(d: Date): string {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
 function sendTimeline(res: ServerResponse, opts: ServerOpts, q: URLSearchParams) {
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.statusCode = 200;
+
+  // Weekly bucket: ?weeks=N → last N Mondays
+  const weeksRaw = q.get("weeks");
+  if (weeksRaw) {
+    const wn = Number(weeksRaw);
+    const weeks = Number.isFinite(wn) && wn > 0 && wn <= 53 ? Math.floor(wn) : 52;
+    // Walk back N-1 weeks from this week's Monday
+    const today = new Date();
+    const thisMondayStr = Store.weekStartOf(localDateString(today));
+    const [ty, tm, td] = thisMondayStr.split("-").map(Number);
+    const thisMonday = new Date(ty!, (tm ?? 1) - 1, td ?? 1);
+    const firstMonday = new Date(thisMonday.getTime() - (weeks - 1) * 7 * 86400_000);
+    const sinceDate = localDateString(firstMonday);
+
+    const series = opts.store.getWeeklyTotals(sinceDate);
+    const have = new Map(series.map(s => [s.weekStart, s]));
+    const filled: Array<{ weekStart: string; cups: number; co2_g: number }> = [];
+    for (let i = 0; i < weeks; i++) {
+      const ws = new Date(firstMonday.getTime() + i * 7 * 86400_000);
+      const key = localDateString(ws);
+      filled.push(have.get(key) ?? { weekStart: key, cups: 0, co2_g: 0 });
+    }
+    res.end(JSON.stringify({ bucket: "week", weeks, series: filled }));
+    return;
+  }
+
+  // Daily bucket (default): ?days=N
   const daysRaw = Number(q.get("days") ?? "30");
   const days = Number.isFinite(daysRaw) && daysRaw > 0 && daysRaw <= 365 ? Math.floor(daysRaw) : 30;
   const since = new Date(Date.now() - (days - 1) * 86400_000);
-  const sinceDate = since.toISOString().slice(0, 10);
+  const sinceDate = localDateString(since);
   const series = opts.store.getDailyTotals(sinceDate);
-  // Fill in zero entries for days that had no brews, so the chart has a
-  // contiguous timeline.
   const have = new Map(series.map(s => [s.date, s]));
   const filled: Array<{ date: string; cups: number; co2_g: number }> = [];
   for (let i = 0; i < days; i++) {
     const d = new Date(since.getTime() + i * 86400_000);
-    const key = d.toISOString().slice(0, 10);
-    filled.push(have.get(key) ?? { date: key, cups: 0, co2_g: 0 });
+    filled.push(have.get(localDateString(d)) ?? { date: localDateString(d), cups: 0, co2_g: 0 });
   }
-  res.statusCode = 200;
-  res.setHeader("Content-Type", "application/json; charset=utf-8");
-  res.setHeader("Cache-Control", "no-store");
-  res.end(JSON.stringify({ days, series: filled }));
+  res.end(JSON.stringify({ bucket: "day", days, series: filled }));
 }
 
 function sendDrinks(res: ServerResponse, opts: ServerOpts, q: URLSearchParams) {

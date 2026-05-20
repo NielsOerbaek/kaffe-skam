@@ -146,6 +146,33 @@ export class Store {
     return this.addPendingIfMatches(row, p => p.localDate === localDate);
   }
 
+  // Return the Monday (YYYY-MM-DD) of the ISO week containing the given
+  // local date. Used for week-bucket aggregation.
+  static weekStartOf(localDate: string): string {
+    // Parse as local midnight to avoid TZ shifts
+    const [y, m, d] = localDate.split("-").map(Number);
+    const dt = new Date(y!, (m ?? 1) - 1, d ?? 1);
+    const dow = dt.getDay();              // 0 (Sun) .. 6 (Sat)
+    const offset = dow === 0 ? -6 : 1 - dow; // ISO week starts Monday
+    dt.setDate(dt.getDate() + offset);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`;
+  }
+
+  // Weekly rollups (Monday-starting), oldest first.
+  getWeeklyTotals(sinceLocalDate: string): Array<{ weekStart: string; cups: number; co2_g: number }> {
+    const days = this.getDailyTotals(sinceLocalDate);
+    const map = new Map<string, { weekStart: string; cups: number; co2_g: number }>();
+    for (const d of days) {
+      const ws = Store.weekStartOf(d.date);
+      const cur = map.get(ws) ?? { weekStart: ws, cups: 0, co2_g: 0 };
+      cur.cups += d.cups;
+      cur.co2_g += d.co2_g;
+      map.set(ws, cur);
+    }
+    return Array.from(map.values()).sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+  }
+
   // Per-day rollups for the last N days, oldest first. Pending brews are
   // attributed to their localDate so today's bar reflects in-flight cups too.
   getDailyTotals(sinceLocalDate: string): Array<{ date: string; cups: number; co2_g: number }> {
