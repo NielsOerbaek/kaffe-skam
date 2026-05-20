@@ -17,7 +17,7 @@ export interface CountersResponse {
 }
 
 export class ApiError extends Error {
-  override readonly name = "ApiError";
+  override readonly name: string = "ApiError";
   constructor(message: string, public readonly status: number) { super(message); }
 }
 
