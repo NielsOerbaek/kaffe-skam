@@ -10,6 +10,10 @@
     "ESPRESSO_MACCHIATO": 7, "LATTE_MACCHIATO": 7,
     "WHITE_AMERICANO": 7, "FILTER_COFFEE": 10,
     "COFFEE_POT": 14, "FILTER_COFFEE_POT": 20,
+    "HOT_WATER": 0, "HOT_WATER_WITH_MILK": 0,
+    "MILK": 0, "MILK_FOAM": 0,
+    "MANUAL_STEAM": 0, "AUTO_STEAM": 0,
+    "EVERFOAM": 0, "POWDER": 0, "NONE": 0, "UNRESOLVED": 0,
     "_default": 7
   },
   "calibration": {

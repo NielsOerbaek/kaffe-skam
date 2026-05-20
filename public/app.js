@@ -111,11 +111,12 @@ function render(s) {
   $("last-label").textContent = `Seneste bryg · ${latest.floor} · ${ts}`;
   $("drink-name").textContent = DA_DRINK[latest.type] ?? latest.displayName;
 
-  const parts = [`${latest.beansG.toFixed(1).replace(".", ",")} g kaffe`];
+  const parts = [];
+  if (latest.beansG > 0) parts.push(`${latest.beansG.toFixed(1).replace(".", ",")} g kaffe`);
   if (latest.milkMl > 0) parts.push(`${Math.round(latest.milkMl)} ml mælk`);
   if (latest.splashCount === 1) parts.push("+ 1 skvæt");
   else if (latest.splashCount > 1) parts.push(`+ ${latest.splashCount} skvæt`);
-  $("composition").textContent = parts.join("  ·  ");
+  $("composition").innerHTML = parts.length ? parts.join("  ·  ") : "&nbsp;";
 
   setBigNumber($("brew-co2"), latest.co2G);
 
