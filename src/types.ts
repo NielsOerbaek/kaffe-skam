@@ -13,6 +13,7 @@ export interface ProductHistory {
   machineTimestamp: string; // ISO 8601 (machine local time)
   type: DrinkType;
   isDouble: 0 | 1;
+  keyId?: number | null;    // product/button id on the machine; maps to ProductParameters.productId
   milk?: { consumption?: number } | null; // ml
   // raw_json keeps the full payload; this is just what merge/co2 use
 }
@@ -21,6 +22,7 @@ export interface ProductHistory {
 export interface Brew {
   id: number;             // Eversys id of the primary brew (unique within one machine)
   machineId: number;      // which machine produced this brew
+  productKey: number | null; // machine's button/product id; resolves to a human name via the products table
   machineTs: string;
   localDate: string;      // YYYY-MM-DD (Pi local time)
   localMonth: string;     // YYYY-MM
@@ -41,7 +43,8 @@ export interface PendingBrew extends Brew {
 // Per-brew view used in /api/state. Includes the friendly floor label.
 export interface BrewView {
   type: DrinkType;
-  displayName: string;
+  displayName: string;    // resolved from the products table when available, else humanizeType
+  productName: string | null; // resolved from products table; null if unknown
   floor: string;          // human label from config (e.g., "2. sal")
   machineTs: string;
   beansG: number;

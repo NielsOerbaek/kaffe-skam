@@ -6,7 +6,7 @@ const M2 = 28199; // 2. sal
 const M3 = 19708; // 3. sal
 
 const makeBrew = (over: Partial<Brew> = {}): Brew => ({
-  id: 1, machineId: M2, machineTs: "2026-05-20T10:00:00",
+  id: 1, machineId: M2, productKey: null, machineTs: "2026-05-20T10:00:00",
   localDate: "2026-05-20", localMonth: "2026-05",
   drinkType: "ESPRESSO", isDouble: 0,
   beansG: 7, milkMl: 0, co2G: 8.68,
@@ -24,7 +24,7 @@ describe("Store", () => {
   beforeEach(() => { s = new Store(":memory:"); });
 
   it("creates schema on construction", () => {
-    expect(s.getMeta("schema_version")).toBe("2");
+    expect(s.getMeta("schema_version")).toBe("3");
   });
 
   it("inserts and reads back brews via getRecentBrews", () => {

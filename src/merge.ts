@@ -32,6 +32,7 @@ const defaultToPending = (ph: ProductHistory, splashWindowMs: number): PendingBr
   return {
     id: ph.id,
     machineId: 0,
+    productKey: typeof ph.keyId === "number" ? ph.keyId : null,
     machineTs,
     localDate: machineTs.slice(0, 10),
     localMonth: machineTs.slice(0, 7),

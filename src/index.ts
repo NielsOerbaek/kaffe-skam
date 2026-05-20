@@ -27,6 +27,14 @@ async function main() {
 
   await poller.bootstrap();
 
+  // Refresh the product-name catalog now and every hour. Cheap call,
+  // and the names rarely change, but new buttons can be programmed on
+  // the machine without restarting us.
+  poller.refreshProducts().catch(e => console.warn("initial refreshProducts:", e));
+  setInterval(() => {
+    poller.refreshProducts().catch(e => console.warn("refreshProducts tick:", e));
+  }, 60 * 60 * 1000);
+
   let backoffIdx = 0;
   const runBrewLoop = async () => {
     try {

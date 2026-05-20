@@ -2,7 +2,10 @@
 // Ranked by CO₂ contribution. Bar shows share of total CO₂. Cup count and
 // total CO₂ are spelled out next to the bar.
 
-const DA_DRINK = {
+// Server-resolved product names come back via displayName. When the row
+// represents an enum-only drink type (no machine button match), we still
+// want a friendly Danish label.
+const DA_DRINK_FALLBACK = {
   RISTRETTO: "Ristretto",
   ESPRESSO: "Espresso",
   COFFEE: "Kaffe",
@@ -25,6 +28,11 @@ const DA_DRINK = {
   HOT_WATER_WITH_MILK: "Varmt vand m. mælk",
   UNRESOLVED: "Ukendt",
 };
+function nameForRow(d) {
+  // Prefer the actual machine button name; otherwise use the Danish fallback
+  // for the API drink_type enum.
+  return d.productName ?? DA_DRINK_FALLBACK[d.type] ?? d.displayName;
+}
 const DA_MONTHS_FULL = ["januar","februar","marts","april","maj","juni","juli","august","september","oktober","november","december"];
 
 function fmtG(g) {
@@ -56,7 +64,7 @@ function render(j) {
     return;
   }
   for (const d of j.drinks) {
-    const name = DA_DRINK[d.type] ?? d.displayName;
+    const name = nameForRow(d);
     const sharePct = Math.round(d.shareOfCo2 * 100);
     const deltaPct = Math.round(d.deltaVsCoffeePct * 100);
     const deltaText = deltaPct === 0

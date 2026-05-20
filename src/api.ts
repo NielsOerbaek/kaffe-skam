@@ -55,4 +55,25 @@ export class EversysClient {
   fetchCounters(): Promise<CountersResponse> {
     return this.req(`/v3/machines/machine-counters/${this.opts.machineId}`);
   }
+
+  // Returns the list of products configured on the machine. Empty-name
+  // entries are filtered out — only the actual programmed buttons.
+  async fetchProducts(side: "LEFT" | "RIGHT" = "LEFT"): Promise<Array<{ productId: number; name: string }>> {
+    let raw: any[];
+    try {
+      raw = await this.req<any[]>(`/v3/machines/${this.opts.machineId}/product-parameters/${side}`);
+    } catch (e) {
+      // Some machines only have one side; treat a 404 as "no products on this side".
+      if (e instanceof ApiError && e.status === 404) return [];
+      throw e;
+    }
+    const out: Array<{ productId: number; name: string }> = [];
+    for (const p of raw ?? []) {
+      const name = (p?.displaySettings?.name ?? p?.generalSettings?.name ?? "").trim();
+      if (!name) continue;
+      if (typeof p.productId !== "number") continue;
+      out.push({ productId: p.productId, name });
+    }
+    return out;
+  }
 }

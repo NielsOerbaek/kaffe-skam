@@ -12,24 +12,29 @@
 
 * { box-sizing: border-box; }
 html, body {
-  margin: 0; padding: 0; height: 100%;
+  margin: 0; padding: 0;
   background: var(--bg); color: var(--fg);
   font-family: "General Sans", system-ui, -apple-system, sans-serif;
   font-weight: 300;
   font-feature-settings: "ss01", "ss02", "tnum" 1, "lnum" 1;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  overflow: hidden;
 }
-
-/* Sub-pages have long content and need to scroll */
+/* Live dashboard locks scroll (it's the wall display). Sub-pages scroll. */
+html, body { height: 100%; }
+body { overflow: hidden; }
 body.page-timeline,
 body.page-drinks,
 body.page-metode {
-  overflow-y: auto;
-  overflow-x: hidden;
   height: auto;
   min-height: 100%;
+  overflow: visible;
+}
+html:has(body.page-timeline),
+html:has(body.page-drinks),
+html:has(body.page-metode) {
+  height: auto;
+  overflow: auto;
 }
 
 body::before {
@@ -57,7 +62,7 @@ body::after {
 /* ────────────────── layout ────────────────── */
 .landscape {
   height: 100vh;
-  padding: 6vh var(--pad-x) 6vh;
+  padding: 9vh var(--pad-x) 6vh;
   display: grid;
   grid-template-columns: 1fr 1px 1.15fr;
   gap: 5vw;
@@ -474,7 +479,7 @@ body::after {
 /* ────────────────── sub-pages: shared frame ────────────────── */
 .page {
   min-height: 100vh;
-  padding: 12vh 6vw 12vh;
+  padding: 14vh 6vw 12vh;
   max-width: 1400px;
   margin: 0 auto;
   display: flex;

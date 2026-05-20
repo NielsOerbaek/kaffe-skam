@@ -93,9 +93,14 @@ function sendDrinks(res: ServerResponse, opts: ServerOpts, q: URLSearchParams) {
     baselineG,
     drinks: rows.map(r => {
       const perCup = r.cups > 0 ? r.co2_g / r.cups : 0;
+      // `displayName` from the store is either a resolved product name or
+      // the raw drink_type. We separate them here so the frontend can apply
+      // its own Danish fallback when no product name was found.
+      const hasProduct = r.displayName !== r.drinkType;
       return {
         type: r.drinkType,
-        displayName: humanizeType(r.drinkType),
+        productName: hasProduct ? r.displayName : null,
+        displayName: hasProduct ? r.displayName : humanizeType(r.drinkType),
         cups: r.cups,
         co2_g: r.co2_g,
         co2PerCupG: perCup,
@@ -135,17 +140,21 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
   const state: ApiState = {
     today: { cups: today.cups, co2_g: today.co2_g },
     month: { cups: month.cups, co2_g: month.co2_g },
-    lastBrews: recent.map(b => ({
-      type: b.drinkType,
-      displayName: humanizeType(b.drinkType),
-      floor: floorByMachine.get(b.machineId) ?? "?",
-      machineTs: b.machineTs,
-      beansG: b.beansG,
-      milkMl: b.milkMl,
-      co2G: b.co2G,
-      splashCount: b.splashIds.length,
-      deltaVsCoffee: b.co2G - baselineG,
-    })),
+    lastBrews: recent.map(b => {
+      const productName = opts.store.getProductName(b.machineId, b.productKey);
+      return {
+        type: b.drinkType,
+        productName,
+        displayName: productName ?? humanizeType(b.drinkType),
+        floor: floorByMachine.get(b.machineId) ?? "?",
+        machineTs: b.machineTs,
+        beansG: b.beansG,
+        milkMl: b.milkMl,
+        co2G: b.co2G,
+        splashCount: b.splashIds.length,
+        deltaVsCoffee: b.co2G - baselineG,
+      };
+    }),
     stale,
     lastPollOkAt,
   };

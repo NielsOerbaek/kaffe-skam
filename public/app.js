@@ -1,8 +1,9 @@
 const $ = (id) => document.getElementById(id);
 const REFRESH_MS = 3000;
 
-// Danish display names for Eversys drink-type enum.
-const DA_DRINK = {
+// Fallback Danish labels for the API's drink-type enum, used only when the
+// machine's product-parameters lookup hasn't resolved a real button name.
+const DA_DRINK_FALLBACK = {
   RISTRETTO: "Ristretto",
   ESPRESSO: "Espresso",
   COFFEE: "Kaffe",
@@ -25,6 +26,10 @@ const DA_DRINK = {
   HOT_WATER_WITH_MILK: "Varmt vand m. mælk",
   UNRESOLVED: "Ukendt",
 };
+// Prefer the resolved machine-button name, fall back to the Danish enum label.
+function brewDisplayName(brew) {
+  return brew.productName ?? DA_DRINK_FALLBACK[brew.type] ?? brew.displayName;
+}
 
 function fmtG(g) {
   if (g == null) return "—";
@@ -113,7 +118,7 @@ function render(s) {
 
   const ts = fmtBrewTs(latest.machineTs);
   $("last-label").textContent = `Seneste bryg · ${ts}`;
-  $("drink-name").textContent = DA_DRINK[latest.type] ?? latest.displayName;
+  $("drink-name").textContent = brewDisplayName(latest);
   $("drink-floor").textContent = latest.floor;
 
   const parts = [];
@@ -146,7 +151,7 @@ function renderPrevious(previous) {
     return;
   }
   for (const b of previous) {
-    const name = DA_DRINK[b.type] ?? b.displayName;
+    const name = brewDisplayName(b);
     const li = document.createElement("li");
     li.innerHTML =
       `<span class="pb-floor">${escape(b.floor)}</span>` +

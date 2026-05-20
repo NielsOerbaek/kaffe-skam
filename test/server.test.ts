@@ -50,14 +50,14 @@ describe("server /api/state", () => {
 
   it("returns up to 3 most recent brews with floor labels", async () => {
     s.insertBrew({
-      id: 1, machineId: M2, machineTs: "2026-05-20T10:00:00",
+      id: 1, machineId: M2, productKey: null, machineTs: "2026-05-20T10:00:00",
       localDate: "2026-05-20", localMonth: "2026-05",
       drinkType: "ESPRESSO", isDouble: 0,
       beansG: 7, milkMl: 0, co2G: 8.68,
       splashIds: [], rawJson: "{}",
     });
     s.insertBrew({
-      id: 2, machineId: M3, machineTs: "2026-05-20T10:05:00",
+      id: 2, machineId: M3, productKey: null, machineTs: "2026-05-20T10:05:00",
       localDate: "2026-05-20", localMonth: "2026-05",
       drinkType: "CAPPUCCINO", isDouble: 0,
       beansG: 7, milkMl: 120, co2G: 176.68,
@@ -80,7 +80,7 @@ describe("server /api/state", () => {
   it("caps lastBrews at 6", async () => {
     for (let i = 1; i <= 9; i++) {
       s.insertBrew({
-        id: i, machineId: M2, machineTs: `2026-05-20T10:0${i}:00`,
+        id: i, machineId: M2, productKey: null, machineTs: `2026-05-20T10:0${i}:00`,
         localDate: "2026-05-20", localMonth: "2026-05",
         drinkType: "ESPRESSO", isDouble: 0,
         beansG: 7, milkMl: 0, co2G: 8.68,
@@ -103,7 +103,7 @@ describe("server /api/state", () => {
   it("uses Pi-local today (date computed at request time)", async () => {
     const today = new Date().toISOString().slice(0, 10);
     s.insertBrew({
-      id: 1, machineId: M2, machineTs: `${today}T10:00:00`,
+      id: 1, machineId: M2, productKey: null, machineTs: `${today}T10:00:00`,
       localDate: today, localMonth: today.slice(0, 7),
       drinkType: "ESPRESSO", isDouble: 0,
       beansG: 7, milkMl: 0, co2G: 8.68,

@@ -149,6 +149,7 @@ export class Poller {
     return {
       id: ph.id,
       machineId,
+      productKey: typeof ph.keyId === "number" ? ph.keyId : null,
       machineTs,
       localDate: machineTs.slice(0, 10),
       localMonth: machineTs.slice(0, 7),
@@ -161,6 +162,23 @@ export class Poller {
       rawJson: JSON.stringify(ph),
       expiresAt,
     };
+  }
+
+  // Fetch and persist the product-name catalog for every configured machine.
+  // Safe to call repeatedly — upserts by (machineId, productKey).
+  async refreshProducts(): Promise<void> {
+    for (const m of this.machines) {
+      for (const side of ["LEFT", "RIGHT"] as const) {
+        try {
+          const products = await m.client.fetchProducts(side);
+          for (const p of products) {
+            this.store.upsertProduct(m.machineId, p.productId, p.name);
+          }
+        } catch (e) {
+          console.warn(`refreshProducts ${m.machineId}/${side} failed:`, (e as Error).message);
+        }
+      }
+    }
   }
 
   private summedBeansGForMachine(machineId: number): number {

@@ -5,6 +5,7 @@ const SCHEMA = `
 CREATE TABLE IF NOT EXISTS brews (
   id              INTEGER NOT NULL,           -- Eversys product-history id (unique within a machine)
   machine_id      INTEGER NOT NULL,
+  product_key     INTEGER,                    -- maps to products.product_key for friendly names
   machine_ts      TEXT NOT NULL,
   local_date      TEXT NOT NULL,
   local_month     TEXT NOT NULL,
@@ -20,10 +21,18 @@ CREATE TABLE IF NOT EXISTS brews (
 CREATE INDEX IF NOT EXISTS idx_brews_local_date  ON brews(local_date);
 CREATE INDEX IF NOT EXISTS idx_brews_local_month ON brews(local_month);
 CREATE INDEX IF NOT EXISTS idx_brews_machine_ts  ON brews(machine_ts);
+-- idx_brews_product is created by runMigrations() after the product_key column exists.
 
 CREATE TABLE IF NOT EXISTS pending_brew (
   machine_id INTEGER PRIMARY KEY,
   brew_json  TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS products (
+  machine_id  INTEGER NOT NULL,
+  product_key INTEGER NOT NULL,
+  name        TEXT NOT NULL,
+  PRIMARY KEY (machine_id, product_key)
 );
 
 CREATE TABLE IF NOT EXISTS meta (
@@ -41,8 +50,40 @@ export class Store {
     this.db = new Database(path);
     this.db.pragma("journal_mode = WAL");
     this.db.exec(SCHEMA);
+    this.runMigrations();
     if (this.getMeta("schema_version") == null) {
-      this.setMeta("schema_version", "2");
+      this.setMeta("schema_version", "3");
+    }
+  }
+
+  // Lightweight forward-only migrations. Safe to run on every startup.
+  private runMigrations(): void {
+    // v3: add product_key column to brews if missing, backfill from raw_json.keyId
+    const cols = this.db.prepare(`PRAGMA table_info(brews)`).all() as Array<{ name: string }>;
+    if (!cols.some(c => c.name === "product_key")) {
+      this.db.exec(`ALTER TABLE brews ADD COLUMN product_key INTEGER`);
+    }
+    // Index can be created any time after the column exists; IF NOT EXISTS is safe to call repeatedly.
+    this.db.exec(`CREATE INDEX IF NOT EXISTS idx_brews_product ON brews(machine_id, product_key)`);
+    // Backfill missing product_key from raw_json.keyId (idempotent — only updates NULLs).
+    const rows = this.db.prepare(
+      `SELECT machine_id, id, raw_json FROM brews WHERE product_key IS NULL`
+    ).all() as Array<{ machine_id: number; id: number; raw_json: string }>;
+    if (rows.length > 0) {
+      const upd = this.db.prepare(
+        `UPDATE brews SET product_key = ? WHERE machine_id = ? AND id = ?`
+      );
+      const tx = this.db.transaction(() => {
+        for (const r of rows) {
+          try {
+            const raw = JSON.parse(r.raw_json) as { keyId?: number };
+            if (typeof raw.keyId === "number") upd.run(raw.keyId, r.machine_id, r.id);
+          } catch {
+            // ignore broken rows
+          }
+        }
+      });
+      tx();
     }
   }
 
@@ -51,15 +92,36 @@ export class Store {
   insertBrew(b: Brew): void {
     this.db.prepare(`
       INSERT OR IGNORE INTO brews
-        (id, machine_id, machine_ts, local_date, local_month, drink_type, is_double,
+        (id, machine_id, product_key, machine_ts, local_date, local_month, drink_type, is_double,
          beans_g, milk_ml, co2_g, splash_ids, raw_json)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      b.id, b.machineId, b.machineTs, b.localDate, b.localMonth, b.drinkType, b.isDouble,
+      b.id, b.machineId, b.productKey, b.machineTs, b.localDate, b.localMonth, b.drinkType, b.isDouble,
       b.beansG, b.milkMl, b.co2G,
       b.splashIds.length ? JSON.stringify(b.splashIds) : null,
       b.rawJson,
     );
+  }
+
+  // ─── Products (button name lookup) ──────────────────────────────
+  upsertProduct(machineId: number, productKey: number, name: string): void {
+    this.db.prepare(`
+      INSERT INTO products (machine_id, product_key, name) VALUES (?, ?, ?)
+      ON CONFLICT(machine_id, product_key) DO UPDATE SET name = excluded.name
+    `).run(machineId, productKey, name);
+  }
+
+  getProductName(machineId: number, productKey: number | null): string | null {
+    if (productKey == null) return null;
+    const row = this.db.prepare(
+      `SELECT name FROM products WHERE machine_id = ? AND product_key = ?`
+    ).get(machineId, productKey) as { name: string } | undefined;
+    return row?.name ?? null;
+  }
+
+  getAllProducts(): Array<{ machineId: number; productKey: number; name: string }> {
+    const rows = this.db.prepare(`SELECT machine_id, product_key, name FROM products`).all() as Array<{ machine_id: number; product_key: number; name: string }>;
+    return rows.map(r => ({ machineId: r.machine_id, productKey: r.product_key, name: r.name }));
   }
 
   // Return the N most recent brews (committed + pending), newest first.
@@ -108,24 +170,35 @@ export class Store {
     return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
   }
 
-  // Per-drink-type rollup for a given month. Sorted by CO2 contribution DESC.
-  getByDrinkType(localMonth: string): Array<{ drinkType: string; cups: number; co2_g: number }> {
+  // Per-drink rollup for a given month, grouped by RESOLVED PRODUCT NAME when
+  // available (machine button name from the products table), falling back to
+  // the API's drink-type enum. Identical names across machines collapse into
+  // a single row. Sorted by CO2 contribution DESC.
+  getByDrinkType(localMonth: string): Array<{ key: string; displayName: string; drinkType: string; cups: number; co2_g: number }> {
     const rows = this.db.prepare(`
-      SELECT drink_type AS drinkType,
-             COUNT(*)   AS cups,
-             COALESCE(SUM(co2_g), 0) AS co2_g
-      FROM brews
-      WHERE local_month = ?
-      GROUP BY drink_type
+      SELECT b.drink_type AS drinkType,
+             p.name       AS productName,
+             COUNT(*)     AS cups,
+             COALESCE(SUM(b.co2_g), 0) AS co2_g
+      FROM brews b
+      LEFT JOIN products p ON p.machine_id = b.machine_id AND p.product_key = b.product_key
+      WHERE b.local_month = ?
+      GROUP BY COALESCE(p.name, b.drink_type)
       ORDER BY co2_g DESC, cups DESC
-    `).all(localMonth) as Array<{ drinkType: string; cups: number; co2_g: number }>;
+    `).all(localMonth) as Array<{ drinkType: string; productName: string | null; cups: number; co2_g: number }>;
 
-    const map = new Map(rows.map(r => [r.drinkType, r]));
+    const map = new Map<string, { key: string; displayName: string; drinkType: string; cups: number; co2_g: number }>();
+    for (const r of rows) {
+      const key = r.productName ?? r.drinkType;
+      map.set(key, { key, displayName: r.productName ?? r.drinkType, drinkType: r.drinkType, cups: r.cups, co2_g: r.co2_g });
+    }
+    // Fold in pending brews
     for (const p of this.getAllPending()) {
       if (p.localMonth !== localMonth) continue;
-      const cur = map.get(p.drinkType);
+      const name = this.getProductName(p.machineId, p.productKey) ?? p.drinkType;
+      const cur = map.get(name);
       if (cur) { cur.cups += 1; cur.co2_g += p.co2G; }
-      else map.set(p.drinkType, { drinkType: p.drinkType, cups: 1, co2_g: p.co2G });
+      else map.set(name, { key: name, displayName: name, drinkType: p.drinkType, cups: 1, co2_g: p.co2G });
     }
     return Array.from(map.values()).sort((a, b) => b.co2_g - a.co2_g || b.cups - a.cups);
   }
@@ -187,6 +260,7 @@ export class Store {
     return {
       id: r.id,
       machineId: r.machine_id,
+      productKey: r.product_key ?? null,
       machineTs: r.machine_ts,
       localDate: r.local_date,
       localMonth: r.local_month,
