@@ -89,6 +89,9 @@ async function refresh() {
 }
 
 function render(s) {
+  // Brand label comes from the server now (env-driven)
+  if (s.locationName) $("brand").textContent = s.locationName;
+
   // Left top — today's CO₂ as the hero; cups count as the supporting line
   setBigNumber($("today-co2"), s.today.co2_g);
   $("today-cups-line").textContent = `${s.today.cups.toLocaleString("da-DK")} ${s.today.cups === 1 ? "kop" : "kopper"} i dag`;

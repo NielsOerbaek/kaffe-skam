@@ -47,14 +47,19 @@ body::before {
   z-index: 10;
 }
 
-/* Single hairline under the whole top chrome strip (brand + nav + chips) */
+/* Blurred backdrop under the whole top chrome strip (brand + nav + chips) +
+   single hairline at its bottom edge. Sits behind the chrome but in front
+   of the page so the content scrolls cleanly underneath. */
 body::after {
   content: "";
   position: fixed;
-  top: 5.4vh;
+  top: 0;
   left: 0; right: 0;
-  height: 1px;
-  background: var(--hairline);
+  height: 5.4vh;
+  background: rgba(243, 239, 231, 0.62);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid var(--hairline);
   z-index: 7;
   pointer-events: none;
 }
@@ -269,25 +274,31 @@ body::after {
   max-width: 60vw;
 }
 
-/* ────────────────── corner brand (top-left) ────────────────── */
+/* ────────────────── corner brand (top-left) — vertically centred in the 5.4vh chrome strip ────────────────── */
 .brand {
   position: fixed;
-  top: 1.6vh; left: 1.4vw;
+  top: 0; left: 1.4vw;
+  height: 5.4vh;
+  display: flex;
+  align-items: center;
   font-size: 1.35vh;
   letter-spacing: 0.22em;
   font-weight: 500;
   color: var(--muted);
   text-transform: uppercase;
   z-index: 8;
-  padding: 0.75vh 1.1vw;
+  padding: 0 1.1vw;
 }
 
 /* ────────────────── top-center navigation ────────────────── */
 .nav {
   position: fixed;
-  top: 1.6vh; left: 50%;
+  top: 0; left: 50%;
   transform: translateX(-50%);
-  display: flex; gap: 0.4vw;
+  height: 5.4vh;
+  display: flex;
+  align-items: center;
+  gap: 0.4vw;
   z-index: 8;
   font-size: 1.35vh;
   letter-spacing: 0.22em;
@@ -304,11 +315,14 @@ body::after {
 .nav a.active { color: var(--fg); }
 .nav a:hover { color: var(--fg); }
 
-/* ────────────────── corner status (live + clock) — floating in top-right ────────────────── */
+/* ────────────────── corner status (live + clock) — vertically centred in the 5.4vh chrome strip ────────────────── */
 .status {
   position: fixed;
-  top: 1.6vh; right: 1.4vw;
-  display: flex; gap: 0.5vw;
+  top: 0; right: 1.4vw;
+  height: 5.4vh;
+  display: flex;
+  align-items: center;
+  gap: 0.5vw;
   z-index: 8;
 }
 .status .chip {

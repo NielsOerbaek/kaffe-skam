@@ -4,6 +4,36 @@
     "milkFactorGPerMl": 1.4,
     "coffeeBaselineG": 8.68
   },
+
+  "beansByProduct": {
+    "Coffee": 7,
+    "Strong Coffee": 8,
+    "Americano": 7,
+    "Espresso": 7,
+    "Cortado": 7,
+    "Cappuccino": 7,
+    "Latte": 7,
+    "Dbl. Americano": 14,
+    "Dbl. Espresso": 14,
+    "Dbl. Cortado": 14,
+    "Dbl. Cappuccino": 14,
+    "Dbl. Latte": 14,
+    "2 x Cortado": 14,
+    "2 x Cappuccino": 14,
+    "2 x Latte": 14,
+    "2x Coffee": 14,
+    "2x Americano": 14,
+    "2x Espresso": 14,
+    "White tea 80°": 0,
+    "Green Tea 85°": 0,
+    "Black tea 93°": 0,
+    "Hot Water": 0,
+    "Splash Cold milk": 0,
+    "Splash warm milk": 0,
+    "Milk for Choco": 0,
+    "Everfoam": 0
+  },
+
   "beansDefaultsG": {
     "RISTRETTO": 8, "ESPRESSO": 7, "COFFEE": 7,
     "AMERICANO": 7, "MILK_COFFEE": 7, "CAPPUCCINO": 7,
@@ -16,6 +46,18 @@
     "EVERFOAM": 0, "POWDER": 0, "NONE": 0, "UNRESOLVED": 0,
     "_default": 7
   },
+
+  "zeroMilkProducts": [
+    "White tea 80°",
+    "Green Tea 85°",
+    "Black tea 93°",
+    "Hot Water"
+  ],
+
+  "productNameOverrides": {
+    "61": "Hot Water"
+  },
+
   "calibration": {
     "minBrewsBetweenCalibrations": 50,
     "maxScaleDelta": 0.5

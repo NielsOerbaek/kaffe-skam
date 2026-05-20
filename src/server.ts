@@ -123,14 +123,18 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
   const floorByMachine = new Map(opts.config.machines.map(m => [m.id, m.floor]));
 
   // Live "sort kaffe" baseline: average each machine's calibration k, then
-  // compute a plain COFFEE's CO₂ at the current calibrated dose.
+  // compute a plain Coffee's CO₂ at the current calibrated dose. Looks up by
+  // product name first ("Coffee" = machine button), falling back to the API
+  // drink_type table.
   const ks = opts.config.machines.map(m => {
     const raw = opts.store.getMeta(`beans_calibration_k_${m.id}`);
     return raw == null ? 1.0 : Number(raw);
   });
   const avgK = ks.length ? ks.reduce((s, k) => s + k, 0) / ks.length : 1.0;
-  const coffeeBeansG = (opts.config.beansDefaultsG["COFFEE"] ?? 7) * avgK;
-  const baselineG = coffeeBeansG * opts.config.co2.beansFactorGPerG;
+  const coffeeBeans = opts.config.beansByProduct["Coffee"]
+    ?? opts.config.beansDefaultsG["COFFEE"]
+    ?? 7;
+  const baselineG = coffeeBeans * avgK * opts.config.co2.beansFactorGPerG;
 
   const lastPollOkAt = opts.store.getMeta("last_poll_ok_at");
   const stale = lastPollOkAt
@@ -138,6 +142,7 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
     : false;
 
   const state: ApiState = {
+    locationName: opts.config.locationName,
     today: { cups: today.cups, co2_g: today.co2_g },
     month: { cups: month.cups, co2_g: month.co2_g },
     lastBrews: recent.map(b => {

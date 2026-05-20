@@ -21,6 +21,9 @@ class FakeApi {
 const baseConfig: Config = {
   co2: { beansFactorGPerG: 1.24, milkFactorGPerMl: 1.4, coffeeBaselineG: 8.68 },
   beansDefaultsG: { ESPRESSO: 7, CAPPUCCINO: 7, _default: 7 },
+  beansByProduct: {},
+  zeroMilkProducts: [],
+  productNameOverrides: {},
   calibration: { minBrewsBetweenCalibrations: 2, maxScaleDelta: 0.5 },
   polling: { brewsIntervalMs: 5000, countersIntervalMs: 60000, splashWindowMs: 300000, backoffMs: [5000] },
   server: { port: 8080, stateRefreshMs: 3000 },
@@ -30,6 +33,7 @@ const baseConfig: Config = {
     { id: M3, floor: "3. sal" },
   ],
   token: "tok",
+  locationName: "Test Office",
 };
 
 function singleMachinePoller(s: Store, api: FakeApi, machineId = M2) {

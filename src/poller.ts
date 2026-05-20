@@ -3,7 +3,7 @@ import type { Store } from "./store.ts";
 import type { Config } from "./config.ts";
 import type { ProductHistory, PendingBrew } from "./types.ts";
 import { mergeStep } from "./merge.ts";
-import { defaultBeansG, applyCalibration, recalibrate } from "./beans.ts";
+import { beansGForBrew, applyCalibration, recalibrate } from "./beans.ts";
 import { co2ForBrew } from "./co2.ts";
 
 export interface MachineWiring {
@@ -141,15 +141,25 @@ export class Poller {
 
   private toPending(ph: ProductHistory, k: number, machineId: number): PendingBrew {
     const machineTs = ph.machineTimestamp;
-    const base = defaultBeansG(ph.type, ph.isDouble, this.cfg.beansDefaultsG);
+    const productKey = typeof ph.keyId === "number" ? ph.keyId : null;
+    const productName = productKey != null ? this.store.getProductName(machineId, productKey) : null;
+
+    const base = beansGForBrew({
+      productName,
+      type: ph.type,
+      isDouble: ph.isDouble,
+      byProduct: this.cfg.beansByProduct,
+      byType: this.cfg.beansDefaultsG,
+    });
     const beansG = applyCalibration(base, k);
-    const milkMl = ph.milk?.consumption ?? 0;
+    const isZeroMilk = productName != null && this.cfg.zeroMilkProducts.includes(productName);
+    const milkMl = isZeroMilk ? 0 : (ph.milk?.consumption ?? 0);
     const co2G = co2ForBrew(beansG, milkMl, this.cfg.co2);
     const expiresAt = toLocalISO(new Date(new Date(machineTs).getTime() + this.cfg.polling.splashWindowMs));
     return {
       id: ph.id,
       machineId,
-      productKey: typeof ph.keyId === "number" ? ph.keyId : null,
+      productKey,
       machineTs,
       localDate: machineTs.slice(0, 10),
       localMonth: machineTs.slice(0, 7),
@@ -166,6 +176,8 @@ export class Poller {
 
   // Fetch and persist the product-name catalog for every configured machine.
   // Safe to call repeatedly — upserts by (machineId, productKey).
+  // After fetching from the API, config.productNameOverrides is applied so
+  // unnamed slots (e.g. keyId=61 "Hot Water") still get a friendly label.
   async refreshProducts(): Promise<void> {
     for (const m of this.machines) {
       for (const side of ["LEFT", "RIGHT"] as const) {
@@ -177,6 +189,12 @@ export class Poller {
         } catch (e) {
           console.warn(`refreshProducts ${m.machineId}/${side} failed:`, (e as Error).message);
         }
+      }
+      // Apply manual overrides last, so they win over an API-fetched empty
+      // or generic name. Keyed by keyId (stringified) in config.
+      for (const [keyStr, name] of Object.entries(this.cfg.productNameOverrides)) {
+        const keyId = Number(keyStr);
+        if (Number.isInteger(keyId)) this.store.upsertProduct(m.machineId, keyId, name);
       }
     }
   }

@@ -12,11 +12,14 @@
     return `${p(d.getHours())}.${p(d.getMinutes())}`;
   }
 
+  const elBrand = document.getElementById("brand");
+
   async function checkLive() {
     try {
       const r = await fetch("/api/state", { cache: "no-store" });
       const s = await r.json();
       elStatus.textContent = s.stale ? "Forældet" : "Live";
+      if (elBrand && s.locationName) elBrand.textContent = s.locationName;
     } catch {
       elStatus.textContent = "Offline";
     }

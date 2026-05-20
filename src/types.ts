@@ -56,6 +56,7 @@ export interface BrewView {
 
 // /api/state JSON shape.
 export interface ApiState {
+  locationName: string;
   today:   { cups: number; co2_g: number };
   month:   { cups: number; co2_g: number };
   lastBrews: BrewView[]; // up to 3, newest first; empty array if none

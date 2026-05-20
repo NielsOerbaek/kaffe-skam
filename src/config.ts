@@ -8,7 +8,10 @@ export interface MachineConfig {
 
 export interface Config {
   co2: { beansFactorGPerG: number; milkFactorGPerMl: number; coffeeBaselineG: number };
-  beansDefaultsG: Record<string, number>;
+  beansDefaultsG: Record<string, number>;       // by API drink_type ENUM — fallback only
+  beansByProduct: Record<string, number>;       // by machine button name — primary
+  zeroMilkProducts: string[];                    // buttons where any API-reported milk is phantom
+  productNameOverrides: Record<string, string>;  // keyId (as string) → human name; for slots the API can't name
   calibration: { minBrewsBetweenCalibrations: number; maxScaleDelta: number };
   polling: {
     brewsIntervalMs: number;
@@ -20,6 +23,7 @@ export interface Config {
   api: { baseUrl: string };
   machines: MachineConfig[];
   token: string;
+  locationName: string;                          // brand label shown in the top-left corner
 }
 
 const requireField = (obj: unknown, path: string): unknown => {
@@ -89,6 +93,7 @@ export function loadConfig(dir: string): Config {
   const machinesRaw = readVar(env, "EVERSYS_MACHINES");
   if (!machinesRaw) throw new Error(`Missing EVERSYS_MACHINES (set in .env or process environment)`);
   const machines = parseMachines(machinesRaw);
+  const locationName = readVar(env, "LOCATION_NAME") ?? "Kaffeskam";
 
   const raw = JSON.parse(readFileSync(configPath, "utf8"));
 
@@ -106,5 +111,18 @@ export function loadConfig(dir: string): Config {
   requireField(raw, "server.stateRefreshMs");
   requireField(raw, "api.baseUrl");
 
-  return { ...raw, machines, token };
+  // Optional fields default to empty if absent in config.json
+  const beansByProduct = (raw && typeof raw === "object" && (raw as any).beansByProduct) || {};
+  const zeroMilkProducts = Array.isArray((raw as any).zeroMilkProducts) ? (raw as any).zeroMilkProducts : [];
+  const productNameOverrides = (raw && typeof raw === "object" && (raw as any).productNameOverrides) || {};
+
+  return {
+    ...raw,
+    beansByProduct,
+    zeroMilkProducts,
+    productNameOverrides,
+    machines,
+    token,
+    locationName,
+  };
 }

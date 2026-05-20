@@ -7,6 +7,23 @@ export function defaultBeansG(type: DrinkType, isDouble: 0 | 1, defaults: BeansD
   return isDouble === 1 ? base * 2 : base;
 }
 
+// Primary lookup: by machine product name (e.g. "Dbl. Latte" → 14 g).
+// Falls back to the API drink_type table when no product name match.
+// Product names like "Dbl. Cortado" / "2× Cortado" already encode doubling,
+// so we don't multiply by 2 again on isDouble.
+export function beansGForBrew(opts: {
+  productName: string | null;
+  type: DrinkType;
+  isDouble: 0 | 1;
+  byProduct: BeansDefaults;
+  byType: BeansDefaults;
+}): number {
+  if (opts.productName && opts.byProduct[opts.productName] != null) {
+    return opts.byProduct[opts.productName]!;
+  }
+  return defaultBeansG(opts.type, opts.isDouble, opts.byType);
+}
+
 export function applyCalibration(beansG: number, k: number): number {
   return beansG * k;
 }
