@@ -108,8 +108,9 @@ function render(s) {
   }
 
   const ts = fmtBrewTs(latest.machineTs);
-  $("last-label").textContent = `Seneste bryg · ${latest.floor} · ${ts}`;
+  $("last-label").textContent = `Seneste bryg · ${ts}`;
   $("drink-name").textContent = DA_DRINK[latest.type] ?? latest.displayName;
+  $("drink-floor").textContent = latest.floor;
 
   const parts = [];
   if (latest.beansG > 0) parts.push(`${latest.beansG.toFixed(1).replace(".", ",")} g kaffe`);

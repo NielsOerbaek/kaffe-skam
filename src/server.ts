@@ -43,7 +43,7 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
 
   const today = opts.store.getTodayTotals(localDate);
   const month = opts.store.getMonthTotals(localMonth);
-  const recent = opts.store.getRecentBrews(3);
+  const recent = opts.store.getRecentBrews(6);
 
   const floorByMachine = new Map(opts.config.machines.map(m => [m.id, m.floor]));
 

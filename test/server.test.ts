@@ -77,8 +77,8 @@ describe("server /api/state", () => {
     expect(j.stale).toBe(false);
   });
 
-  it("caps lastBrews at 3", async () => {
-    for (let i = 1; i <= 5; i++) {
+  it("caps lastBrews at 6", async () => {
+    for (let i = 1; i <= 9; i++) {
       s.insertBrew({
         id: i, machineId: M2, machineTs: `2026-05-20T10:0${i}:00`,
         localDate: "2026-05-20", localMonth: "2026-05",
@@ -89,8 +89,8 @@ describe("server /api/state", () => {
     }
     const r = await fetch(`${url}/api/state`);
     const j = await r.json();
-    expect(j.lastBrews).toHaveLength(3);
-    expect(j.lastBrews[0].machineTs).toBe("2026-05-20T10:05:00");
+    expect(j.lastBrews).toHaveLength(6);
+    expect(j.lastBrews[0].machineTs).toBe("2026-05-20T10:09:00");
   });
 
   it("marks stale=true when last_poll_ok_at is older than 60s", async () => {
