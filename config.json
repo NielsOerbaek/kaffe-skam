@@ -28,5 +28,9 @@
   },
   "api": {
     "baseUrl": "https://api.eversys-telemetry.com"
-  }
+  },
+  "machines": [
+    { "id": 28199, "floor": "2. sal" },
+    { "id": 19708, "floor": "3. sal" }
+  ]
 }

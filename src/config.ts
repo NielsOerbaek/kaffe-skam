@@ -1,6 +1,11 @@
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
+export interface MachineConfig {
+  id: number;
+  floor: string;
+}
+
 export interface Config {
   co2: { beansFactorGPerG: number; milkFactorGPerMl: number; coffeeBaselineG: number };
   beansDefaultsG: Record<string, number>;
@@ -13,8 +18,8 @@ export interface Config {
   };
   server: { port: number; stateRefreshMs: number };
   api: { baseUrl: string };
+  machines: MachineConfig[];
   token: string;
-  machineId: number;
 }
 
 const requireField = (obj: unknown, path: string): unknown => {
@@ -29,13 +34,28 @@ const requireField = (obj: unknown, path: string): unknown => {
   return cur;
 };
 
+function validateMachines(raw: unknown): MachineConfig[] {
+  if (!Array.isArray(raw) || raw.length === 0) {
+    throw new Error(`config.json: "machines" must be a non-empty array`);
+  }
+  const out: MachineConfig[] = [];
+  for (const m of raw) {
+    if (m == null || typeof m !== "object" || typeof (m as any).id !== "number" || typeof (m as any).floor !== "string") {
+      throw new Error(`config.json: each machine must be { id: number, floor: string }`);
+    }
+    if (!Number.isInteger((m as any).id)) {
+      throw new Error(`config.json: machine id must be an integer, got ${(m as any).id}`);
+    }
+    out.push({ id: (m as any).id, floor: (m as any).floor });
+  }
+  return out;
+}
+
 export function loadConfig(dir: string): Config {
   const configPath = join(dir, "config.json");
   const tokenPath = join(dir, ".token");
-  const machineIdPath = join(dir, ".machine_id");
 
   if (!existsSync(tokenPath)) throw new Error(`Missing .token at ${tokenPath}`);
-  if (!existsSync(machineIdPath)) throw new Error(`Missing .machine_id at ${machineIdPath}`);
   if (!existsSync(configPath)) throw new Error(`Missing config.json at ${configPath}`);
 
   const raw = JSON.parse(readFileSync(configPath, "utf8"));
@@ -53,13 +73,10 @@ export function loadConfig(dir: string): Config {
   requireField(raw, "server.port");
   requireField(raw, "server.stateRefreshMs");
   requireField(raw, "api.baseUrl");
+  requireField(raw, "machines");
 
+  const machines = validateMachines((raw as any).machines);
   const token = readFileSync(tokenPath, "utf8").trim();
-  const machineIdRaw = readFileSync(machineIdPath, "utf8").trim();
-  const machineId = Number(machineIdRaw);
-  if (!Number.isInteger(machineId)) {
-    throw new Error(`.machine_id must contain an integer, got "${machineIdRaw}"`);
-  }
 
-  return { ...raw, token, machineId };
+  return { ...raw, machines, token };
 }

@@ -6,8 +6,14 @@ import { mergeStep } from "./merge.ts";
 import { defaultBeansG, applyCalibration, recalibrate } from "./beans.ts";
 import { co2ForBrew } from "./co2.ts";
 
+export interface MachineWiring {
+  client: EversysClient;
+  machineId: number;
+  floor: string;
+}
+
 export interface PollerOpts {
-  api: EversysClient;
+  machines: MachineWiring[];
   store: Store;
   config: Config;
 }
@@ -20,46 +26,62 @@ function toLocalISO(d: Date): string {
 }
 
 export class Poller {
-  private readonly api: EversysClient;
+  private readonly machines: MachineWiring[];
   private readonly store: Store;
   private readonly cfg: Config;
 
   constructor(opts: PollerOpts) {
-    this.api = opts.api;
+    this.machines = opts.machines;
     this.store = opts.store;
     this.cfg = opts.config;
   }
 
+  // Per-machine meta keys
+  private keyLastSeen(machineId: number)        { return `last_seen_id_${machineId}`; }
+  private keyK(machineId: number)               { return `beans_calibration_k_${machineId}`; }
+  private keyAnchorKg(machineId: number)        { return `beans_calibration_anchor_kg_${machineId}`; }
+  private keyAnchorSummedG(machineId: number)   { return `beans_calibration_anchor_summed_g_${machineId}`; }
+  private keyAnchorBrewCount(machineId: number) { return `beans_calibration_anchor_brew_count_${machineId}`; }
+
   async bootstrap(): Promise<void> {
-    if (this.store.getMeta("last_seen_id") != null) return;
-    const recent = await this.api.fetchBrewsAfter(null, 1);
-    const id = recent[0]?.id ?? 0;
-    this.store.setMeta("last_seen_id", String(id));
-    this.store.setMeta("beans_calibration_k", "1.0");
-    // Initialise calibration anchor at zero so the first tickCounters can compute a delta.
-    this.store.setMeta("beans_calibration_anchor_kg", "0");
-    this.store.setMeta("beans_calibration_anchor_summed_g", "0");
-    this.store.setMeta("beans_calibration_anchor_brew_count", "0");
+    for (const m of this.machines) {
+      if (this.store.getMeta(this.keyLastSeen(m.machineId)) != null) continue;
+      const recent = await m.client.fetchBrewsAfter(null, 1);
+      const id = recent[0]?.id ?? 0;
+      this.store.setMeta(this.keyLastSeen(m.machineId), String(id));
+      this.store.setMeta(this.keyK(m.machineId), "1.0");
+      this.store.setMeta(this.keyAnchorKg(m.machineId), "0");
+      this.store.setMeta(this.keyAnchorSummedG(m.machineId), "0");
+      this.store.setMeta(this.keyAnchorBrewCount(m.machineId), "0");
+    }
   }
 
   async tickBrews(nowMs: number = Date.now()): Promise<void> {
-    const lastSeen = Number(this.store.getMeta("last_seen_id") ?? "0");
-    const k = Number(this.store.getMeta("beans_calibration_k") ?? "1.0");
+    for (const m of this.machines) {
+      await this.tickOneMachine(m, nowMs);
+    }
+    this.store.setMeta("last_poll_ok_at", new Date(nowMs).toISOString());
+  }
 
-    // Flush stale pending from the PREVIOUS tick before fetching new brews.
-    let pending = this.store.getPending();
+  private async tickOneMachine(m: MachineWiring, nowMs: number): Promise<void> {
+    const lastSeenKey = this.keyLastSeen(m.machineId);
+    const lastSeen = Number(this.store.getMeta(lastSeenKey) ?? "0");
+    const k = Number(this.store.getMeta(this.keyK(m.machineId)) ?? "1.0");
+
+    // Flush stale pending from this machine's previous tick before fetching new brews.
+    let pending = this.store.getPending(m.machineId);
     if (pending && new Date(pending.expiresAt).getTime() <= nowMs) {
       this.store.insertBrew(pending);
-      this.store.clearPending();
+      this.store.clearPending(m.machineId);
       pending = null;
     }
 
-    const brews = await this.api.fetchBrewsAfter(lastSeen, 100);
+    const brews = await m.client.fetchBrewsAfter(lastSeen, 100);
     let newLastSeen = lastSeen;
 
     for (const ph of brews) {
       const r = mergeStep(ph, pending, this.cfg.polling.splashWindowMs, {
-        toPending: (raw) => this.toPending(raw, k),
+        toPending: (raw) => this.toPending(raw, k, m.machineId),
       });
       if (r.commit) this.store.insertBrew(r.commit);
       pending = r.newPending;
@@ -67,34 +89,42 @@ export class Poller {
     }
 
     if (pending) this.store.setPending(pending);
-    else this.store.clearPending();
+    else this.store.clearPending(m.machineId);
 
-    if (newLastSeen !== lastSeen) this.store.setMeta("last_seen_id", String(newLastSeen));
-    this.store.setMeta("last_poll_ok_at", new Date(nowMs).toISOString());
+    if (newLastSeen !== lastSeen) this.store.setMeta(lastSeenKey, String(newLastSeen));
   }
 
   async tickCounters(): Promise<void> {
-    const c = await this.api.fetchCounters();
+    for (const m of this.machines) {
+      await this.tickCountersOne(m);
+    }
     this.store.setMeta("last_counter_check_at", new Date().toISOString());
+  }
 
+  private async tickCountersOne(m: MachineWiring): Promise<void> {
+    const c = await m.client.fetchCounters();
     const counterKg = c.beans.totalQuantity;
-    const anchorKgStr = this.store.getMeta("beans_calibration_anchor_kg");
-    const anchorSummedStr = this.store.getMeta("beans_calibration_anchor_summed_g");
-    const summedNow = this.summedBeansGSinceEpoch();
+    const summedNow = this.summedBeansGForMachine(m.machineId);
+    const countNow = this.brewCountForMachine(m.machineId);
 
-    if (anchorKgStr == null || anchorSummedStr == null) {
-      this.store.setMeta("beans_calibration_anchor_kg", String(counterKg));
-      this.store.setMeta("beans_calibration_anchor_summed_g", String(summedNow));
-      this.store.setMeta("beans_calibration_anchor_brew_count", String(this.brewCountTotal()));
+    const anchorKgStr        = this.store.getMeta(this.keyAnchorKg(m.machineId));
+    const anchorSummedStr    = this.store.getMeta(this.keyAnchorSummedG(m.machineId));
+    const anchorBrewCountStr = this.store.getMeta(this.keyAnchorBrewCount(m.machineId));
+
+    if (anchorKgStr == null || anchorSummedStr == null || anchorBrewCountStr == null) {
+      this.store.setMeta(this.keyAnchorKg(m.machineId), String(counterKg));
+      this.store.setMeta(this.keyAnchorSummedG(m.machineId), String(summedNow));
+      this.store.setMeta(this.keyAnchorBrewCount(m.machineId), String(countNow));
       return;
     }
 
-    const anchorKg = Number(anchorKgStr);
+    const anchorKg     = Number(anchorKgStr);
     const anchorSummed = Number(anchorSummedStr);
-    const brewsSinceAnchor = this.brewCountTotal() - Number(this.store.getMeta("beans_calibration_anchor_brew_count") ?? "0");
+    const anchorCount  = Number(anchorBrewCountStr);
+    const brewsSinceAnchor = countNow - anchorCount;
     const summedSinceAnchor = summedNow - anchorSummed;
     const actualGramsDelta = (counterKg - anchorKg) * 1000;
-    const currentK = Number(this.store.getMeta("beans_calibration_k") ?? "1.0");
+    const currentK = Number(this.store.getMeta(this.keyK(m.machineId)) ?? "1.0");
 
     const newK = recalibrate(
       { brewsSinceAnchor, summedBeansGSinceAnchor: summedSinceAnchor, actualGramsDelta, currentK },
@@ -102,14 +132,14 @@ export class Poller {
     );
 
     if (newK != null) {
-      this.store.setMeta("beans_calibration_k", String(newK));
-      this.store.setMeta("beans_calibration_anchor_kg", String(counterKg));
-      this.store.setMeta("beans_calibration_anchor_summed_g", String(summedNow));
-      this.store.setMeta("beans_calibration_anchor_brew_count", String(this.brewCountTotal()));
+      this.store.setMeta(this.keyK(m.machineId), String(newK));
+      this.store.setMeta(this.keyAnchorKg(m.machineId), String(counterKg));
+      this.store.setMeta(this.keyAnchorSummedG(m.machineId), String(summedNow));
+      this.store.setMeta(this.keyAnchorBrewCount(m.machineId), String(countNow));
     }
   }
 
-  private toPending(ph: ProductHistory, k: number): PendingBrew {
+  private toPending(ph: ProductHistory, k: number, machineId: number): PendingBrew {
     const machineTs = ph.machineTimestamp;
     const base = defaultBeansG(ph.type, ph.isDouble, this.cfg.beansDefaultsG);
     const beansG = applyCalibration(base, k);
@@ -118,6 +148,7 @@ export class Poller {
     const expiresAt = toLocalISO(new Date(new Date(machineTs).getTime() + this.cfg.polling.splashWindowMs));
     return {
       id: ph.id,
+      machineId,
       machineTs,
       localDate: machineTs.slice(0, 10),
       localMonth: machineTs.slice(0, 7),
@@ -132,21 +163,19 @@ export class Poller {
     };
   }
 
-  private summedBeansGSinceEpoch(): number {
+  private summedBeansGForMachine(machineId: number): number {
     const db = (this.store as any).db;
-    const r = db.prepare(`SELECT COALESCE(SUM(beans_g), 0) AS total FROM brews`).get();
+    const r = db.prepare(`SELECT COALESCE(SUM(beans_g), 0) AS total FROM brews WHERE machine_id = ?`).get(machineId);
     const committed = r.total as number;
-    // Include the pending brew so calibration accounts for all observed shots.
-    const pending = this.store.getPending();
+    const pending = this.store.getPending(machineId);
     return committed + (pending?.beansG ?? 0);
   }
 
-  private brewCountTotal(): number {
+  private brewCountForMachine(machineId: number): number {
     const db = (this.store as any).db;
-    const r = db.prepare(`SELECT COUNT(*) AS n FROM brews`).get();
+    const r = db.prepare(`SELECT COUNT(*) AS n FROM brews WHERE machine_id = ?`).get(machineId);
     const committed = r.n as number;
-    // Include the pending brew so calibration counts all observed shots.
-    const pending = this.store.getPending();
+    const pending = this.store.getPending(machineId);
     return committed + (pending != null ? 1 : 0);
   }
 }

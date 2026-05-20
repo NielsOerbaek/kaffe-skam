@@ -14,11 +14,16 @@ async function main() {
   mkdirSync(join(ROOT, "data"), { recursive: true });
 
   const store = new Store(join(ROOT, "data", "kaffe.sqlite"));
-  const api = new EversysClient({
-    baseUrl: cfg.api.baseUrl, token: cfg.token, machineId: cfg.machineId,
-  });
-  const poller = new Poller({ api, store, config: cfg });
+  const machines = cfg.machines.map(m => ({
+    machineId: m.id,
+    floor: m.floor,
+    client: new EversysClient({
+      baseUrl: cfg.api.baseUrl, token: cfg.token, machineId: m.id,
+    }),
+  }));
+  const poller = new Poller({ machines, store, config: cfg });
   const server = createServer({ store, config: cfg, publicDir: join(ROOT, "public") });
+  console.log(`tracking ${machines.length} machine(s): ${machines.map(m => `${m.machineId} (${m.floor})`).join(", ")}`);
 
   await poller.bootstrap();
 

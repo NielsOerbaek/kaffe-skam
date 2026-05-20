@@ -10,7 +10,7 @@ const ph = (over: Partial<ProductHistory>): ProductHistory => ({
 });
 
 const pending = (over: Partial<PendingBrew>): PendingBrew => ({
-  id: 1, machineTs: "2026-05-20T10:00:00",
+  id: 1, machineId: 28199, machineTs: "2026-05-20T10:00:00",
   localDate: "2026-05-20", localMonth: "2026-05",
   drinkType: "ESPRESSO", isDouble: 0,
   beansG: 7, milkMl: 0, co2G: 8.68,

@@ -43,7 +43,9 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
 
   const today = opts.store.getTodayTotals(localDate);
   const month = opts.store.getMonthTotals(localMonth);
-  const last = opts.store.getLastBrew();
+  const recent = opts.store.getRecentBrews(3);
+
+  const floorByMachine = new Map(opts.config.machines.map(m => [m.id, m.floor]));
 
   const lastPollOkAt = opts.store.getMeta("last_poll_ok_at");
   const stale = lastPollOkAt
@@ -53,16 +55,17 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
   const state: ApiState = {
     today: { cups: today.cups, co2_g: today.co2_g },
     month: { cups: month.cups, co2_g: month.co2_g },
-    lastBrew: last ? {
-      type: last.drinkType,
-      displayName: humanizeType(last.drinkType),
-      machineTs: last.machineTs,
-      beansG: last.beansG,
-      milkMl: last.milkMl,
-      co2G: last.co2G,
-      splashCount: last.splashIds.length,
-      deltaVsCoffee: deltaVsCoffee(last.co2G, opts.config.co2),
-    } : null,
+    lastBrews: recent.map(b => ({
+      type: b.drinkType,
+      displayName: humanizeType(b.drinkType),
+      floor: floorByMachine.get(b.machineId) ?? "?",
+      machineTs: b.machineTs,
+      beansG: b.beansG,
+      milkMl: b.milkMl,
+      co2G: b.co2G,
+      splashCount: b.splashIds.length,
+      deltaVsCoffee: deltaVsCoffee(b.co2G, opts.config.co2),
+    })),
     stale,
     lastPollOkAt,
   };

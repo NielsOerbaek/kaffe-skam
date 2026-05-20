@@ -31,13 +31,15 @@ function fmtG(g) {
   if (g >= 1000) return (g / 1000).toFixed(2).replace(".", ",") + " kg";
   return Math.round(g) + " g";
 }
+function escape(s) {
+  return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+}
 function setBigNumber(el, g) {
-  // "57 g" + " CO₂" (CO₂ rendered as a slightly muted tail, same size)
   if (g == null) { el.textContent = "—"; return; }
   el.innerHTML = `${escape(fmtG(g))}<span class="unit-tail">&nbsp;CO₂</span>`;
 }
-function escape(s) {
-  return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+function smallNumberHtml(g) {
+  return `${escape(fmtG(g))}<span class="unit-tail">&nbsp;CO₂</span>`;
 }
 function fmtDriveKm(co2_g) {
   const km = co2_g / 200;
@@ -49,14 +51,16 @@ function fmtClock(d = new Date()) {
   const p = (n) => String(n).padStart(2, "0");
   return `${p(d.getHours())}.${p(d.getMinutes())}`;
 }
-
 const DA_MONTHS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
 function fmtBrewTs(machineTs) {
-  // "2026-05-20T12:22:54" → "20. maj kl. 12.22"
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):/.exec(machineTs);
   if (!m) return machineTs;
   const month = DA_MONTHS[parseInt(m[2], 10) - 1] ?? m[2];
   return `${parseInt(m[3], 10)}. ${month} kl. ${m[4]}.${m[5]}`;
+}
+function fmtBrewTime(machineTs) {
+  const m = /^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2}):/.exec(machineTs);
+  return m ? `${m[1]}.${m[2]}` : "—";
 }
 
 async function refresh() {
@@ -80,35 +84,63 @@ function render(s) {
   $("chip-time").textContent = fmtClock();
   $("stale-badge").hidden = !s.stale;
 
-  if (!s.lastBrew) {
+  const brews = s.lastBrews ?? [];
+  const latest = brews[0];
+  const previous = brews.slice(1);
+
+  if (!latest) {
     $("last-label").textContent = "Seneste bryg";
     $("drink-name").textContent = "Venter på første kop…";
     $("composition").innerHTML = " ";
     $("brew-co2").textContent = "—";
     $("delta").textContent = "";
     $("vs").textContent = "";
+    renderPrevious([]);
     return;
   }
 
-  const b = s.lastBrew;
-  const ts = fmtBrewTs(b.machineTs);
-  $("last-label").textContent = "Seneste bryg · " + ts;
-  $("drink-name").textContent = DA_DRINK[b.type] ?? b.displayName;
+  const ts = fmtBrewTs(latest.machineTs);
+  $("last-label").textContent = `Seneste bryg · ${latest.floor} · ${ts}`;
+  $("drink-name").textContent = DA_DRINK[latest.type] ?? latest.displayName;
 
-  const parts = [`${b.beansG.toFixed(1).replace(".", ",")} g kaffe`];
-  if (b.milkMl > 0) parts.push(`${Math.round(b.milkMl)} ml mælk`);
-  if (b.splashCount === 1) parts.push("+ 1 skvæt");
-  else if (b.splashCount > 1) parts.push(`+ ${b.splashCount} skvæt`);
+  const parts = [`${latest.beansG.toFixed(1).replace(".", ",")} g kaffe`];
+  if (latest.milkMl > 0) parts.push(`${Math.round(latest.milkMl)} ml mælk`);
+  if (latest.splashCount === 1) parts.push("+ 1 skvæt");
+  else if (latest.splashCount > 1) parts.push(`+ ${latest.splashCount} skvæt`);
   $("composition").textContent = parts.join("  ·  ");
 
-  setBigNumber($("brew-co2"), b.co2G);
+  setBigNumber($("brew-co2"), latest.co2G);
 
-  const d = b.deltaVsCoffee;
-  const baseline = b.co2G - d;
+  const d = latest.deltaVsCoffee;
+  const baseline = latest.co2G - d;
   $("delta").textContent = (d >= 0 ? "+" : "−") + fmtG(Math.abs(d));
   $("delta").classList.toggle("up", d >= 0);
   $("delta").classList.toggle("down", d < 0);
   $("vs").textContent = `vs. almindelig kaffe (${fmtG(baseline)})`;
+
+  renderPrevious(previous);
+}
+
+function renderPrevious(previous) {
+  const list = $("previous-list");
+  list.innerHTML = "";
+  if (previous.length === 0) {
+    const li = document.createElement("li");
+    li.className = "empty";
+    li.textContent = "Ingen tidligere bryg endnu";
+    list.appendChild(li);
+    return;
+  }
+  for (const b of previous) {
+    const name = DA_DRINK[b.type] ?? b.displayName;
+    const li = document.createElement("li");
+    li.innerHTML =
+      `<span class="pb-floor">${escape(b.floor)}</span>` +
+      `<span class="pb-time">${escape(fmtBrewTime(b.machineTs))}</span>` +
+      `<span class="pb-drink">${escape(name)}</span>` +
+      `<span class="pb-co2">${smallNumberHtml(b.co2G)}</span>`;
+    list.appendChild(li);
+  }
 }
 
 refresh();

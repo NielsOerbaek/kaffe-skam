@@ -3,7 +3,8 @@ import type { Brew, PendingBrew } from "./types.ts";
 
 const SCHEMA = `
 CREATE TABLE IF NOT EXISTS brews (
-  id              INTEGER PRIMARY KEY,
+  id              INTEGER NOT NULL,           -- Eversys product-history id (unique within a machine)
+  machine_id      INTEGER NOT NULL,
   machine_ts      TEXT NOT NULL,
   local_date      TEXT NOT NULL,
   local_month     TEXT NOT NULL,
@@ -13,14 +14,16 @@ CREATE TABLE IF NOT EXISTS brews (
   milk_ml         REAL NOT NULL,
   co2_g           REAL NOT NULL,
   splash_ids      TEXT,
-  raw_json        TEXT NOT NULL
+  raw_json        TEXT NOT NULL,
+  PRIMARY KEY (machine_id, id)
 );
 CREATE INDEX IF NOT EXISTS idx_brews_local_date  ON brews(local_date);
 CREATE INDEX IF NOT EXISTS idx_brews_local_month ON brews(local_month);
+CREATE INDEX IF NOT EXISTS idx_brews_machine_ts  ON brews(machine_ts);
 
 CREATE TABLE IF NOT EXISTS pending_brew (
-  id INTEGER PRIMARY KEY CHECK (id = 1),
-  brew_json TEXT NOT NULL
+  machine_id INTEGER PRIMARY KEY,
+  brew_json  TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS meta (
@@ -39,7 +42,7 @@ export class Store {
     this.db.pragma("journal_mode = WAL");
     this.db.exec(SCHEMA);
     if (this.getMeta("schema_version") == null) {
-      this.setMeta("schema_version", "1");
+      this.setMeta("schema_version", "2");
     }
   }
 
@@ -48,25 +51,29 @@ export class Store {
   insertBrew(b: Brew): void {
     this.db.prepare(`
       INSERT OR IGNORE INTO brews
-        (id, machine_ts, local_date, local_month, drink_type, is_double,
+        (id, machine_id, machine_ts, local_date, local_month, drink_type, is_double,
          beans_g, milk_ml, co2_g, splash_ids, raw_json)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
-      b.id, b.machineTs, b.localDate, b.localMonth, b.drinkType, b.isDouble,
+      b.id, b.machineId, b.machineTs, b.localDate, b.localMonth, b.drinkType, b.isDouble,
       b.beansG, b.milkMl, b.co2G,
       b.splashIds.length ? JSON.stringify(b.splashIds) : null,
       b.rawJson,
     );
   }
 
-  getLastBrew(): Brew | PendingBrew | null {
-    const pending = this.getPending();
-    const row = this.db.prepare(`SELECT * FROM brews ORDER BY machine_ts DESC, id DESC LIMIT 1`).get() as any;
-    const committed = row ? this.rowToBrew(row) : null;
-    if (pending && committed) {
-      return pending.machineTs > committed.machineTs ? pending : committed;
-    }
-    return pending ?? committed;
+  // Return the N most recent brews (committed + pending), newest first.
+  // Pending brews count as "recent" so a brew shows up immediately even before its splash window expires.
+  getRecentBrews(limit: number): Brew[] {
+    const pendings = this.getAllPending();
+    const need = limit + pendings.length;
+    const rows = this.db.prepare(
+      `SELECT * FROM brews ORDER BY machine_ts DESC, id DESC LIMIT ?`
+    ).all(need) as any[];
+    const committed = rows.map(r => this.rowToBrew(r));
+    const all: Brew[] = [...pendings, ...committed];
+    all.sort((a, b) => b.machineTs.localeCompare(a.machineTs));
+    return all.slice(0, limit);
   }
 
   getTodayTotals(localDate: string): Totals {
@@ -85,26 +92,37 @@ export class Store {
     return this.addPendingIfMatches(row, p => p.localMonth === localMonth);
   }
 
+  // Each machine's pending brew counts at most once toward totals.
   private addPendingIfMatches(row: Totals, predicate: (p: PendingBrew) => boolean): Totals {
-    const p = this.getPending();
-    if (p && predicate(p)) return { cups: row.cups + 1, co2_g: row.co2_g + p.co2G };
-    return row;
+    const matched = this.getAllPending().filter(predicate);
+    if (matched.length === 0) return row;
+    return {
+      cups: row.cups + matched.length,
+      co2_g: row.co2_g + matched.reduce((s, p) => s + p.co2G, 0),
+    };
   }
 
   setPending(p: PendingBrew): void {
     this.db.prepare(`
-      INSERT INTO pending_brew (id, brew_json) VALUES (1, ?)
-      ON CONFLICT(id) DO UPDATE SET brew_json = excluded.brew_json
-    `).run(JSON.stringify(p));
+      INSERT INTO pending_brew (machine_id, brew_json) VALUES (?, ?)
+      ON CONFLICT(machine_id) DO UPDATE SET brew_json = excluded.brew_json
+    `).run(p.machineId, JSON.stringify(p));
   }
 
-  getPending(): PendingBrew | null {
-    const row = this.db.prepare(`SELECT brew_json FROM pending_brew WHERE id = 1`).get() as { brew_json: string } | undefined;
+  getPending(machineId: number): PendingBrew | null {
+    const row = this.db.prepare(
+      `SELECT brew_json FROM pending_brew WHERE machine_id = ?`
+    ).get(machineId) as { brew_json: string } | undefined;
     return row ? JSON.parse(row.brew_json) as PendingBrew : null;
   }
 
-  clearPending(): void {
-    this.db.prepare(`DELETE FROM pending_brew WHERE id = 1`).run();
+  getAllPending(): PendingBrew[] {
+    const rows = this.db.prepare(`SELECT brew_json FROM pending_brew`).all() as { brew_json: string }[];
+    return rows.map(r => JSON.parse(r.brew_json) as PendingBrew);
+  }
+
+  clearPending(machineId: number): void {
+    this.db.prepare(`DELETE FROM pending_brew WHERE machine_id = ?`).run(machineId);
   }
 
   getMeta(key: string): string | null {
@@ -122,6 +140,7 @@ export class Store {
   private rowToBrew(r: any): Brew {
     return {
       id: r.id,
+      machineId: r.machine_id,
       machineTs: r.machine_ts,
       localDate: r.local_date,
       localMonth: r.local_month,

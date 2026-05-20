@@ -19,7 +19,8 @@ export interface ProductHistory {
 
 // What we commit to the brews table.
 export interface Brew {
-  id: number;             // Eversys id of the primary brew
+  id: number;             // Eversys id of the primary brew (unique within one machine)
+  machineId: number;      // which machine produced this brew
   machineTs: string;
   localDate: string;      // YYYY-MM-DD (Pi local time)
   localMonth: string;     // YYYY-MM
@@ -37,20 +38,24 @@ export interface PendingBrew extends Brew {
   expiresAt: string;      // machineTs + splashWindowMs, ISO 8601
 }
 
+// Per-brew view used in /api/state. Includes the friendly floor label.
+export interface BrewView {
+  type: DrinkType;
+  displayName: string;
+  floor: string;          // human label from config (e.g., "2. sal")
+  machineTs: string;
+  beansG: number;
+  milkMl: number;
+  co2G: number;
+  splashCount: number;
+  deltaVsCoffee: number;
+}
+
 // /api/state JSON shape.
 export interface ApiState {
   today:   { cups: number; co2_g: number };
   month:   { cups: number; co2_g: number };
-  lastBrew: {
-    type: DrinkType;
-    displayName: string;
-    machineTs: string;
-    beansG: number;
-    milkMl: number;
-    co2G: number;
-    splashCount: number;
-    deltaVsCoffee: number;
-  } | null;
+  lastBrews: BrewView[]; // up to 3, newest first; empty array if none
   stale: boolean;
   lastPollOkAt: string | null;
 }

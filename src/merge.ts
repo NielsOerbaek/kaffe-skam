@@ -23,10 +23,15 @@ export interface MergeDeps {
   toPending: (ph: ProductHistory, splashWindowMs: number) => PendingBrew;
 }
 
+// Default builder used when callers don't inject `toPending`. The result has
+// `machineId = 0` and zeroed beansG/co2G — the poller always overrides this
+// with its own builder that knows the real machineId and the calibration k.
+// Tests for mergeStep itself don't care about these fields.
 const defaultToPending = (ph: ProductHistory, splashWindowMs: number): PendingBrew => {
   const machineTs = ph.machineTimestamp;
   return {
     id: ph.id,
+    machineId: 0,
     machineTs,
     localDate: machineTs.slice(0, 10),
     localMonth: machineTs.slice(0, 7),

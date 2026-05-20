@@ -100,18 +100,17 @@ body::before {
   font-weight: 300;
 }
 .right .brew-co2 {
-  margin-top: auto;
-  font-size: clamp(96px, 19vh, 240px);
+  margin-top: 2vh;
+  font-size: clamp(80px, 15vh, 200px);
   font-weight: 200;
   line-height: 0.92;
   letter-spacing: -0.045em;
   color: var(--fg);
   font-feature-settings: "tnum" 1, "lnum" 1, "ss01";
-  padding-top: 4vh;
 }
 .right .delta-line {
   display: flex; align-items: baseline; gap: 1.2vw;
-  margin-top: 1vh;
+  margin-top: 0.8vh;
   padding-bottom: 0;
 }
 .right .delta-inline {
@@ -130,18 +129,81 @@ body::before {
   font-weight: 500;
 }
 
-/* "CO₂" tail on big numbers — same size, slightly muted to keep the number primary */
+/* "CO₂" tail on big numbers — smaller, muted, lifted to the cap-height baseline */
+.hero .unit-tail,
+.brew-co2 .unit-tail {
+  color: var(--muted);
+  font-weight: 300;
+  font-size: 0.42em;
+  letter-spacing: 0.04em;
+  margin-left: 0.18em;
+  vertical-align: 0.65em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+/* Generic tail used in small contexts (previous-list rows) */
 .unit-tail {
   color: var(--muted);
-  font-weight: 200;
+  font-weight: 300;
   margin-left: 0.15em;
-  letter-spacing: -0.02em;
+  font-size: 0.85em;
+}
+.hero, .brew-co2 { white-space: nowrap; }
+
+/* ────────────────── previous brews list ────────────────── */
+.previous-brews {
+  margin-top: auto;
+  padding-top: 3vh;
+  border-top: 1px solid var(--hairline);
+}
+.previous-brews .label { margin-bottom: 1vh; }
+.previous-list {
+  list-style: none;
+  margin: 0; padding: 0;
+  display: flex; flex-direction: column;
+  gap: 1.1vh;
+}
+.previous-list li {
+  display: grid;
+  grid-template-columns: 8vw 8vw 1fr auto;
+  align-items: baseline;
+  gap: 1.5vw;
+  font-size: 2.1vh;
+  color: var(--fg);
+  font-weight: 300;
+}
+.previous-list .pb-floor {
+  color: var(--muted);
+  font-size: 1.55vh;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+.previous-list .pb-time {
+  color: var(--muted);
+  font-size: 1.7vh;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+.previous-list .pb-drink {
+  letter-spacing: -0.01em;
+}
+.previous-list .pb-co2 {
+  text-align: right;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  white-space: nowrap;
+}
+.previous-list .pb-co2 .unit-tail { font-weight: 300; }
+.previous-list li.empty {
+  color: var(--muted-dim);
+  font-style: italic;
+  font-size: 1.7vh;
+  grid-template-columns: 1fr;
 }
 
-/* ────────────────── corner status (live + clock) ────────────────── */
+/* ────────────────── corner status (live + clock) — top right, out of content ────────────────── */
 .status {
   position: fixed;
-  bottom: 3.2vh; right: var(--pad-x);
+  top: 3.2vh; right: var(--pad-x);
   display: flex; gap: 0.7vw;
   z-index: 5;
 }
