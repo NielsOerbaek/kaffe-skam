@@ -44,6 +44,24 @@ body::before {
 .divider { background: var(--hairline); }
 .pane { display: flex; flex-direction: column; gap: 1.4vh; min-width: 0; }
 
+.left { justify-content: space-between; }
+.left-top, .left-bottom { display: flex; flex-direction: column; gap: 0.8vh; }
+.left-bottom {
+  padding-top: 3vh;
+  border-top: 1px solid var(--hairline);
+  gap: 1.6vh;
+}
+.month-header { font-weight: 500; }
+.month-stats { display: flex; gap: 4.5vw; margin-top: 0.4vh; }
+.month-stats > div { display: flex; flex-direction: column; gap: 0.9vh; }
+.month-stats .n {
+  font-size: 5.6vh;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  color: var(--fg);
+}
+
 /* ────────────────── labels ────────────────── */
 .label {
   font-size: 1.7vh;
@@ -55,7 +73,7 @@ body::before {
 
 /* ────────────────── left pane ────────────────── */
 .left .hero {
-  font-size: clamp(96px, 19vh, 240px);
+  font-size: clamp(96px, 23vh, 300px);
   font-weight: 200;
   line-height: 0.92;
   letter-spacing: -0.045em;
@@ -65,23 +83,15 @@ body::before {
 }
 .left .sub {
   font-size: 2.6vh;
-  color: var(--muted);
+  color: var(--fg);
   letter-spacing: 0.01em;
   font-weight: 300;
 }
-.left .meta {
-  margin-top: auto;
-  display: flex; gap: 4.5vw;
-  padding-top: 3vh;
-  border-top: 1px solid var(--hairline);
-}
-.left .meta > div { display: flex; flex-direction: column; gap: 0.9vh; }
-.left .meta .n {
-  font-size: 5.6vh;
+.left .sub-faint {
+  font-size: 2vh;
+  color: var(--muted);
+  letter-spacing: 0.01em;
   font-weight: 300;
-  letter-spacing: -0.02em;
-  font-feature-settings: "tnum" 1, "lnum" 1;
-  color: var(--fg);
 }
 
 /* ────────────────── right pane ────────────────── */
@@ -212,6 +222,18 @@ body::before {
   font-style: italic;
   font-size: 1.7vh;
   grid-template-columns: 1fr;
+}
+
+/* ────────────────── footnote (bottom-left) ────────────────── */
+.footnote {
+  position: fixed;
+  bottom: 1.6vh; left: 1.4vw;
+  font-size: 1.3vh;
+  letter-spacing: 0.05em;
+  color: var(--muted-dim);
+  z-index: 7;
+  padding: 0.65vh 1.1vw;
+  max-width: 60vw;
 }
 
 /* ────────────────── corner brand (top-left) ────────────────── */

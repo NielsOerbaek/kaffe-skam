@@ -11,12 +11,24 @@
 <body>
   <main class="landscape" id="root">
     <section class="pane left">
-      <div class="label">Dagens kaffe-CO₂eq</div>
-      <div class="hero" id="today-co2">—</div>
-      <div class="sub" id="today-equiv">&nbsp;</div>
-      <div class="meta">
-        <div><div class="label">Kopper</div><div class="n" id="today-cups">—</div></div>
-        <div><div class="label">Denne måned</div><div class="n" id="month-co2">—</div></div>
+      <div class="left-top">
+        <div class="label">Kopper i dag</div>
+        <div class="hero" id="today-cups">—</div>
+        <div class="sub" id="today-co2-line">&nbsp;</div>
+        <div class="sub-faint" id="today-equiv">&nbsp;</div>
+      </div>
+      <div class="left-bottom">
+        <div class="label month-header" id="month-header">—</div>
+        <div class="month-stats">
+          <div>
+            <div class="label">Antal kopper</div>
+            <div class="n" id="month-cups">—</div>
+          </div>
+          <div>
+            <div class="label">CO₂ udledt</div>
+            <div class="n" id="month-co2">—</div>
+          </div>
+        </div>
       </div>
     </section>
     <div class="divider"></div>
@@ -40,6 +52,9 @@
   </main>
 
   <div class="brand">THORAVEJ&nbsp;29</div>
+  <div class="footnote" aria-hidden="false">
+    Tallene dækker kun kaffebønner og mælk &nbsp;·&nbsp; elektricitet, vand og emballage er ikke regnet med
+  </div>
 
   <div class="status" aria-hidden="false">
     <span class="chip" id="chip-status">Live</span>

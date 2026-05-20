@@ -12,7 +12,7 @@
 
 import { loadConfig } from "../src/config.ts";
 import { Store } from "../src/store.ts";
-import { EversysClient, ApiRateLimitError } from "../src/api.ts";
+import { ApiRateLimitError, ApiError } from "../src/api.ts";
 import { mergeStep } from "../src/merge.ts";
 import { defaultBeansG, applyCalibration } from "../src/beans.ts";
 import { co2ForBrew } from "../src/co2.ts";
@@ -53,44 +53,51 @@ function buildPending(ph: ProductHistory, cfg: Config, machineId: number): Pendi
   };
 }
 
-async function fetchRange(
-  client: EversysClient,
+// Direct, time-windowed fetch. We can't reuse EversysClient.fetchBrewsAfter
+// because it switches between DESC (no afterId) and ASC (with afterId) which
+// breaks pagination when seeding the loop.
+async function fetchBrewsInRange(
+  cfg: Config,
+  machineId: number,
   t1: string,
   t2: string,
 ): Promise<ProductHistory[]> {
   const all: ProductHistory[] = [];
-  let afterId: number | null = null;
-  // The /products endpoint defaults to DESC; we want chronological order, so
-  // either request ASC or sort after. We page via afterId in ASC order.
-  for (let page = 0; page < 100; page++) {
-    // crude rate-limit retry
+  let afterId: number | undefined;
+  const limit = 500;
+  for (let page = 0; page < 200; page++) {
+    const qs = new URLSearchParams({
+      sortOrder: "ASC",
+      limit: String(limit),
+      t1,
+      t2,
+    });
+    if (afterId !== undefined) qs.set("afterId", String(afterId));
+    const url = `${cfg.api.baseUrl}/v3/machines/${machineId}/products?${qs}`;
     let attempts = 0;
-    let chunk: ProductHistory[] = [];
-    while (attempts < 5) {
-      try {
-        chunk = await client.fetchBrewsAfter(afterId, 500);
-        break;
-      } catch (e) {
-        if (e instanceof ApiRateLimitError) {
-          attempts++;
-          const wait = 1000 * Math.pow(2, attempts);
-          process.stdout.write(`  rate limited, sleeping ${wait}ms… `);
-          await new Promise(r => setTimeout(r, wait));
-          continue;
-        }
-        throw e;
+    let chunk: ProductHistory[] | null = null;
+    while (attempts < 6) {
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${cfg.token}` } });
+      if (r.status === 429) {
+        attempts++;
+        const wait = 1000 * Math.pow(2, attempts);
+        process.stdout.write(`(429, sleeping ${wait}ms) `);
+        await new Promise(res => setTimeout(res, wait));
+        continue;
       }
+      if (!r.ok) throw new ApiError(`HTTP ${r.status} for ${url}`, r.status);
+      chunk = await r.json() as ProductHistory[];
+      break;
     }
+    if (chunk == null) throw new ApiRateLimitError();
     if (chunk.length === 0) break;
-    // Filter by date range (t1 inclusive, t2 exclusive)
-    const inRange = chunk.filter(b => b.machineTimestamp >= t1 && b.machineTimestamp < t2);
-    all.push(...inRange);
+    all.push(...chunk);
     afterId = chunk[chunk.length - 1]!.id;
-    // Once we've crossed t2, stop.
-    if (chunk[chunk.length - 1]!.machineTimestamp >= t2) break;
-    // Friendly pacing.
-    await new Promise(r => setTimeout(r, 250));
+    process.stdout.write(`page ${page + 1}: +${chunk.length} (total ${all.length})  `);
+    if (chunk.length < limit) break;
+    await new Promise(res => setTimeout(res, 200)); // friendly pacing
   }
+  process.stdout.write("\n");
   return all;
 }
 
@@ -115,11 +122,7 @@ async function main() {
   let totalCommitted = 0;
   for (const m of cfg.machines) {
     console.log(`══ machine ${m.id} (${m.floor}) ══`);
-    const client = new EversysClient({ baseUrl: cfg.api.baseUrl, token: cfg.token, machineId: m.id });
-    const brews = await fetchRange(client, t1, t2);
-    // The API returns sorted by machine_ts but with the seek pagination from
-    // afterId in ASC order, we get IDs ascending which roughly tracks time.
-    // Sort once more by timestamp to be safe.
+    const brews = await fetchBrewsInRange(cfg, m.id, t1, t2);
     brews.sort((a, b) => a.machineTimestamp.localeCompare(b.machineTimestamp));
     console.log(`  fetched ${brews.length} brews`);
 
@@ -135,7 +138,6 @@ async function main() {
       }
       pending = r.newPending;
     }
-    // Flush any final pending — its splash window has long passed.
     if (pending) {
       store.insertBrew(pending as Brew);
       committed++;

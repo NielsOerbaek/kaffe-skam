@@ -52,11 +52,16 @@ function fmtClock(d = new Date()) {
   return `${p(d.getHours())}.${p(d.getMinutes())}`;
 }
 const DA_MONTHS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+const DA_MONTHS_FULL = ["januar", "februar", "marts", "april", "maj", "juni", "juli", "august", "september", "oktober", "november", "december"];
 function fmtBrewTs(machineTs) {
   const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):/.exec(machineTs);
   if (!m) return machineTs;
   const month = DA_MONTHS[parseInt(m[2], 10) - 1] ?? m[2];
   return `${parseInt(m[3], 10)}. ${month} kl. ${m[4]}.${m[5]}`;
+}
+function fmtMonthHeader(now = new Date()) {
+  const m = DA_MONTHS_FULL[now.getMonth()] ?? "";
+  return `${m.charAt(0).toUpperCase() + m.slice(1)} ${now.getFullYear()}`;
 }
 function fmtBrewTime(machineTs) {
   const m = /^\d{4}-\d{2}-\d{2}T(\d{2}):(\d{2}):/.exec(machineTs);
@@ -85,10 +90,16 @@ async function refresh() {
 }
 
 function render(s) {
-  setBigNumber($("today-co2"), s.today.co2_g);
-  $("today-equiv").textContent = fmtDriveKm(s.today.co2_g);
+  // Left top — cups today as the hero, CO₂ + drive-equivalent as supporting lines
   $("today-cups").textContent = s.today.cups;
+  $("today-co2-line").textContent = `= ${fmtG(s.today.co2_g)} CO₂eq`;
+  $("today-equiv").textContent = fmtDriveKm(s.today.co2_g);
+
+  // Left bottom — "<Month> <Year>" header + month-to-date stats
+  $("month-header").textContent = fmtMonthHeader();
+  $("month-cups").textContent = s.month.cups.toLocaleString("da-DK");
   $("month-co2").textContent = fmtG(s.month.co2_g);
+
   $("chip-time").textContent = fmtClock();
   $("stale-badge").hidden = !s.stale;
 
