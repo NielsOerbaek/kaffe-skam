@@ -63,6 +63,14 @@ function fmtBrewTime(machineTs) {
   return m ? `${m[1]}.${m[2]}` : "—";
 }
 
+// Delta as percentage of baseline. Rounded to nearest %; uses minus sign for negatives.
+function fmtDeltaPct(delta, baseline) {
+  if (!baseline || !isFinite(baseline)) return "—";
+  const pct = Math.round((delta / baseline) * 100);
+  if (pct === 0) return "±0 %";
+  return (pct > 0 ? "+" : "−") + Math.abs(pct) + " %";
+}
+
 async function refresh() {
   try {
     const r = await fetch("/api/state", { cache: "no-store" });
@@ -113,7 +121,7 @@ function render(s) {
 
   const d = latest.deltaVsCoffee;
   const baseline = latest.co2G - d;
-  $("delta").textContent = (d >= 0 ? "+" : "−") + fmtG(Math.abs(d));
+  $("delta").textContent = fmtDeltaPct(d, baseline);
   $("delta").classList.toggle("up", d >= 0);
   $("delta").classList.toggle("down", d < 0);
   $("vs").textContent = `vs. almindelig kaffe (${fmtG(baseline)})`;
