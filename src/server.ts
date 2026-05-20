@@ -75,19 +75,34 @@ function sendDrinks(res: ServerResponse, opts: ServerOpts, q: URLSearchParams) {
   const rows = opts.store.getByDrinkType(month);
   const total = rows.reduce((s, r) => s + r.co2_g, 0);
   const totalCups = rows.reduce((s, r) => s + r.cups, 0);
+
+  // Same baseline as the Live page — current calibrated COFFEE estimate.
+  const ks = opts.config.machines.map(m => {
+    const raw = opts.store.getMeta(`beans_calibration_k_${m.id}`);
+    return raw == null ? 1.0 : Number(raw);
+  });
+  const avgK = ks.length ? ks.reduce((s, k) => s + k, 0) / ks.length : 1.0;
+  const baselineG = (opts.config.beansDefaultsG["COFFEE"] ?? 7) * avgK * opts.config.co2.beansFactorGPerG;
+
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
   res.end(JSON.stringify({
     month,
     total: { cups: totalCups, co2_g: total },
-    drinks: rows.map(r => ({
-      type: r.drinkType,
-      displayName: humanizeType(r.drinkType),
-      cups: r.cups,
-      co2_g: r.co2_g,
-      shareOfCo2: total > 0 ? r.co2_g / total : 0,
-    })),
+    baselineG,
+    drinks: rows.map(r => {
+      const perCup = r.cups > 0 ? r.co2_g / r.cups : 0;
+      return {
+        type: r.drinkType,
+        displayName: humanizeType(r.drinkType),
+        cups: r.cups,
+        co2_g: r.co2_g,
+        co2PerCupG: perCup,
+        deltaVsCoffeePct: baselineG > 0 ? (perCup / baselineG - 1) : 0,
+        shareOfCo2: total > 0 ? r.co2_g / total : 0,
+      };
+    }),
   }));
 }
 

@@ -57,14 +57,20 @@ function render(j) {
   }
   for (const d of j.drinks) {
     const name = DA_DRINK[d.type] ?? d.displayName;
-    const pct = Math.round(d.shareOfCo2 * 100);
+    const sharePct = Math.round(d.shareOfCo2 * 100);
+    const deltaPct = Math.round(d.deltaVsCoffeePct * 100);
+    const deltaText = deltaPct === 0
+      ? "±0 %"
+      : (deltaPct > 0 ? "+" : "−") + Math.abs(deltaPct) + " %";
+    const deltaClass = deltaPct > 0 ? "up" : deltaPct < 0 ? "down" : "";
     const li = document.createElement("li");
     li.innerHTML =
       `<span class="dl-drink">${escape(name)}</span>` +
       `<span class="dl-bar"><span class="dl-bar-fill" style="width:${d.shareOfCo2 * 100}%"></span></span>` +
-      `<span class="dl-share">${pct} %</span>` +
+      `<span class="dl-share">${sharePct} %</span>` +
       `<span class="dl-cups">${d.cups.toLocaleString("da-DK")}</span>` +
-      `<span class="dl-co2">${escape(fmtG(d.co2_g))}<span class="unit-tail">&nbsp;CO₂</span></span>`;
+      `<span class="dl-co2">${escape(fmtG(d.co2_g))}<span class="unit-tail">&nbsp;CO₂</span></span>` +
+      `<span class="dl-delta ${deltaClass}">${deltaText}</span>`;
     list.appendChild(li);
   }
 }

@@ -30,8 +30,7 @@
         <button data-metric="cups">Kopper</button>
       </div>
       <div class="chart-wrap">
-        <svg id="chart" viewBox="0 0 1000 360" preserveAspectRatio="none"></svg>
-        <div class="x-axis" id="x-axis"></div>
+        <canvas id="chart"></canvas>
       </div>
     </section>
   </main>
@@ -44,6 +43,7 @@
     Tallene dækker kun kaffebønner og mælk &nbsp;·&nbsp; elektricitet, vand og emballage er ikke regnet med
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
   <script src="/static/chrome.js"></script>
   <script src="/static/timeline.js"></script>
 </body>

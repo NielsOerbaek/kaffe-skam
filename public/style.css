@@ -22,6 +22,16 @@ html, body {
   overflow: hidden;
 }
 
+/* Sub-pages have long content and need to scroll */
+body.page-timeline,
+body.page-drinks,
+body.page-metode {
+  overflow-y: auto;
+  overflow-x: hidden;
+  height: auto;
+  min-height: 100%;
+}
+
 body::before {
   content: "";
   position: fixed; inset: 0;
@@ -30,6 +40,18 @@ body::before {
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
   mix-blend-mode: multiply;
   z-index: 10;
+}
+
+/* Single hairline under the whole top chrome strip (brand + nav + chips) */
+body::after {
+  content: "";
+  position: fixed;
+  top: 5.4vh;
+  left: 0; right: 0;
+  height: 1px;
+  background: var(--hairline);
+  z-index: 7;
+  pointer-events: none;
 }
 
 /* ────────────────── layout ────────────────── */
@@ -48,12 +70,13 @@ body::before {
 .left-top, .left-bottom { display: flex; flex-direction: column; gap: 0.8vh; }
 .left-bottom {
   padding-top: 3vh;
-  border-top: 1px solid var(--hairline);
   gap: 1.6vh;
 }
 .month-header {
+  font-size: 1.35vh;
   font-weight: 500;
-  padding-bottom: 1.4vh;
+  letter-spacing: 0.2em;
+  padding-bottom: 1.2vh;
   border-bottom: 1px solid var(--hairline);
 }
 .month-stats { display: flex; gap: 4.5vw; margin-top: 1.4vh; }
@@ -271,13 +294,9 @@ body::before {
   color: var(--muted);
   text-decoration: none;
   padding: 0.75vh 1.1vw;
-  border-bottom: 1px solid transparent;
-  transition: color 200ms, border-color 200ms;
+  transition: color 200ms;
 }
-.nav a.active {
-  color: var(--fg);
-  border-bottom-color: var(--fg);
-}
+.nav a.active { color: var(--fg); }
 .nav a:hover { color: var(--fg); }
 
 /* ────────────────── corner status (live + clock) — floating in top-right ────────────────── */
@@ -467,9 +486,9 @@ body::before {
   margin-bottom: 4vh;
 }
 .page-title {
-  font-size: clamp(40px, 6vw, 80px);
+  font-size: clamp(28px, 3.6vw, 48px);
   font-weight: 300;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.025em;
   line-height: 1;
   margin: 0.6vh 0 1.4vh;
 }
@@ -508,53 +527,26 @@ body::before {
 .chart-wrap {
   position: relative;
   width: 100%;
-  flex: 1;
+  height: 56vh;
   min-height: 320px;
 }
-#chart {
-  width: 100%;
-  height: 50vh;
-  min-height: 320px;
-  display: block;
-}
-#chart .grid {
-  stroke: var(--hairline);
-  stroke-width: 1;
-}
-#chart .axis {
-  stroke: rgba(20,20,20,0.32);
-  stroke-width: 1;
-}
-#chart .y-label {
-  fill: var(--muted-dim);
-  font-family: "General Sans", sans-serif;
-  font-size: 11px;
-  letter-spacing: 0.04em;
-}
-#chart .bar { fill: rgba(20,20,20,0.55); }
-#chart .bar.today { fill: var(--up); }
-.x-axis {
-  position: relative;
-  height: 2.4vh;
-  margin-top: 0.5vh;
-}
-.x-tick {
-  position: absolute;
-  transform: translateX(-50%);
-  font-size: 1.4vh;
-  color: var(--muted);
-  letter-spacing: 0.04em;
-  white-space: nowrap;
-}
+#chart { width: 100% !important; height: 100% !important; display: block; }
 
 /* ────────────────── drinks list ────────────────── */
 .drink-list-section { display: flex; flex-direction: column; gap: 1.2vh; }
 .dl-header,
 .drink-list li {
   display: grid;
-  grid-template-columns: minmax(160px, 1.4fr) minmax(140px, 2fr) 64px minmax(70px, 0.8fr) minmax(80px, 0.8fr);
+  /* drink | bar | share | cups | co2 | delta */
+  grid-template-columns:
+    minmax(160px, 1.4fr)    /* drink name */
+    minmax(120px, 1.6fr)    /* share bar */
+    56px                    /* share % */
+    minmax(60px, 0.7fr)     /* cups */
+    minmax(110px, 0.9fr)    /* total co2 */
+    minmax(90px, 0.9fr);    /* delta vs sort kaffe */
   align-items: center;
-  gap: 2vw;
+  gap: 1.4vw;
   padding: 1.3vh 0;
 }
 .dl-header {
@@ -567,7 +559,8 @@ body::before {
   padding-bottom: 1.4vh;
   margin-bottom: 1vh;
 }
-.dl-h-cups, .dl-h-co2, .dl-h-share { text-align: right; }
+.dl-h-cups, .dl-h-co2, .dl-h-share, .dl-h-delta { text-align: right; }
+.dl-h-delta { letter-spacing: 0.14em; }
 .drink-list {
   list-style: none;
   margin: 0; padding: 0;
@@ -597,12 +590,16 @@ body::before {
   border-radius: 2px;
   transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-.dl-share, .dl-cups, .dl-co2 {
+.dl-share, .dl-cups, .dl-co2, .dl-delta {
   text-align: right;
   font-feature-settings: "tnum" 1, "lnum" 1;
+  white-space: nowrap;
 }
 .dl-share { color: var(--muted); font-size: 1.8vh; }
 .dl-co2 .unit-tail { font-size: 0.85em; color: var(--muted); }
+.dl-delta { font-size: 1.9vh; color: var(--muted); }
+.dl-delta.up   { color: var(--up); }
+.dl-delta.down { color: var(--down); }
 
 /* ────────────────── methodology prose ────────────────── */
 .prose {
@@ -657,16 +654,26 @@ body::before {
   .page-head { padding-bottom: 2vh; margin-bottom: 3vh; }
   .dl-header { display: none; }
   .drink-list li {
+    /* Two-column main row + a full-width bar row below */
     grid-template-columns: 1fr auto;
-    gap: 1.5vw;
-    padding: 1.6vh 0;
+    gap: 1vh 1.5vw;
+    padding: 1.8vh 0;
     font-size: clamp(15px, 4vw, 19px);
   }
-  .drink-list li .dl-bar { grid-column: 1 / -1; order: 3; }
-  .drink-list li .dl-share { order: 4; font-size: clamp(11px, 3vw, 13px); }
+  .drink-list li .dl-drink { order: 1; grid-column: 1; }
+  .drink-list li .dl-co2   { order: 2; grid-column: 2; }
+  .drink-list li .dl-bar   { order: 3; grid-column: 1 / -1; }
   .drink-list li .dl-cups,
-  .drink-list li .dl-co2 { order: 2; }
-  .drink-list li .dl-drink { order: 1; }
-  .drink-list li .dl-cups::after { content: " kopper"; color: var(--muted); font-size: 0.7em; }
+  .drink-list li .dl-share,
+  .drink-list li .dl-delta {
+    order: 4;
+    font-size: clamp(11px, 3vw, 13px);
+    color: var(--muted);
+  }
+  .drink-list li .dl-cups   { grid-column: 1; text-align: left; }
+  .drink-list li .dl-share  { grid-column: 1; text-align: left; }
+  .drink-list li .dl-delta  { grid-column: 2; text-align: right; }
+  .drink-list li .dl-cups::after  { content: " kopper"; color: var(--muted); font-size: 0.9em; }
+  .drink-list li .dl-share::after { content: " af CO₂"; color: var(--muted); font-size: 0.9em; }
   #chart { height: 44vh; min-height: 240px; }
 }
