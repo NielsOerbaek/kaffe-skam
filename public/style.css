@@ -1,54 +1,233 @@
 :root {
-  --bg: #1c1c1f;
-  --fg: #e8e6df;
-  --muted: #888;
-  --divider: #333;
-  --accent: #d2a96c;
-  --up: #e88a5c;
-  --down: #93c47d;
-  --bar-bg: #2a2a2d;
-  --bar-default: #555;
+  --bg: #000;
+  --fg: #f3f0ea;
+  --muted: rgba(243, 240, 234, 0.42);
+  --hairline: rgba(243, 240, 234, 0.12);
+  --bar-bg: rgba(243, 240, 234, 0.08);
+  --bar-default: rgba(243, 240, 234, 0.35);
+  --bar-current: #f3f0ea;
+  --up: #f3e8c8;
+  --down: #c8d8b8;
+  --pad-x: 4vw;
+  --pad-y: 3.5vh;
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--fg);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif; }
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: var(--bg); color: var(--fg);
+  font-family: "General Sans", system-ui, -apple-system, sans-serif;
+  font-weight: 300;
+  font-feature-settings: "ss01", "ss02", "tnum" 1, "lnum" 1;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
 
+body::before {
+  /* Subtle film-grain noise (inline SVG, no extra request) */
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.5 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  mix-blend-mode: screen;
+  z-index: 10;
+}
+
+/* ────────────────── top bar ────────────────── */
+.topbar {
+  position: fixed; top: 0; left: 0; right: 0;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 2.6vh var(--pad-x);
+  z-index: 5;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-size: 1.35vh;
+}
+.brand { color: var(--fg); }
+.chips { display: flex; gap: 0.7vw; }
+.chip {
+  padding: 0.65vh 1.1vw;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  font-size: 1.2vh;
+}
+.chip.alt { color: var(--fg); border-color: rgba(243,240,234,0.3); }
+
+/* ────────────────── layout ────────────────── */
 .landscape {
   height: 100vh;
-  padding: 4vh 4vw;
+  padding: 12vh var(--pad-x) 5vh;
   display: grid;
-  grid-template-columns: 1fr 1px 1.2fr;
-  gap: 4vw;
+  grid-template-columns: 1fr 1px 1.15fr;
+  gap: 5vw;
+  align-items: stretch;
 }
-.divider { background: var(--divider); }
+.divider { background: var(--hairline); }
+.pane { display: flex; flex-direction: column; gap: 1.4vh; min-width: 0; }
 
-.pane { display: flex; flex-direction: column; gap: 1.5vh; }
-.label { font-size: 1.4vh; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); }
+/* ────────────────── labels ────────────────── */
+.label {
+  font-size: 1.25vh;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 400;
+}
 
-.left .hero { font-size: 16vh; font-weight: 700; line-height: 1; letter-spacing: -0.04em; color: var(--accent); }
-.left .sub  { font-size: 2.2vh; color: #b0aea9; }
-.left .meta { margin-top: auto; display: flex; gap: 4vw; }
-.left .meta .n { font-size: 4vh; font-weight: 600; }
+/* ────────────────── left pane ────────────────── */
+.left .hero {
+  font-size: clamp(96px, 18.5vh, 240px);
+  font-weight: 200;
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  color: var(--fg);
+  margin: 1.2vh 0 0.4vh;
+  font-feature-settings: "tnum" 1, "lnum" 1, "ss01";
+}
+.left .sub {
+  font-size: 2vh;
+  color: var(--muted);
+  letter-spacing: 0.01em;
+}
+.left .meta {
+  margin-top: auto;
+  display: flex; gap: 4.5vw;
+  padding-top: 3vh;
+  border-top: 1px solid var(--hairline);
+}
+.left .meta > div { display: flex; flex-direction: column; gap: 0.7vh; }
+.left .meta .n {
+  font-size: 4.5vh;
+  font-weight: 200;
+  letter-spacing: -0.02em;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
 
-.right .drink-name { font-size: 6vh; font-weight: 600; letter-spacing: -0.02em; }
-.right .composition { color: #b0aea9; font-size: 1.8vh; }
-.right .delta-row { display: flex; align-items: baseline; gap: 1.4vw; margin-top: 1vh; }
-.right .delta { font-size: 8vh; font-weight: 700; }
+/* ────────────────── right pane ────────────────── */
+.right .drink-name {
+  font-size: clamp(36px, 7vh, 96px);
+  font-weight: 300;
+  letter-spacing: -0.025em;
+  line-height: 1;
+  margin-top: 0.6vh;
+}
+.right .composition {
+  font-size: 1.7vh;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+  margin-top: 0.4vh;
+}
+.right .delta-row {
+  display: flex; align-items: baseline; gap: 1.4vw;
+  margin-top: 3vh;
+}
+.right .delta {
+  font-size: clamp(60px, 11vh, 160px);
+  font-weight: 200;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
 .right .delta.up   { color: var(--up); }
 .right .delta.down { color: var(--down); }
-.right .vs { font-size: 1.8vh; color: var(--muted); }
-
-.bar-comparison { margin-top: auto; display: flex; flex-direction: column; gap: 1.4vh; }
-.bc-row { display: grid; grid-template-columns: 12vw 1fr 8vw; align-items: center; gap: 1.5vw; font-size: 1.8vh; color: #b0aea9; }
-.bc-barwrap { height: 1.6vh; background: var(--bar-bg); border-radius: 0.8vh; overflow: hidden; }
-.bc-barfill { height: 100%; background: var(--bar-default); transition: width 600ms ease; }
-.bc-row.current .bc-barfill { background: var(--accent); }
-.bc-v { text-align: right; }
-
-.stale-badge {
-  position: absolute; top: 2vh; right: 3vw;
-  background: #5c1f1f; color: #fff;
-  padding: 0.6vh 1vw; border-radius: 0.8vh;
-  font-size: 1.4vh; letter-spacing: 0.05em; text-transform: uppercase;
+.right .vs {
+  font-size: 1.5vh;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
 }
+
+/* ────────────────── comparison bars (hairline + thin fill) ────────────────── */
+.bar-comparison {
+  margin-top: auto;
+  display: flex; flex-direction: column; gap: 1.4vh;
+  padding-top: 3vh;
+  border-top: 1px solid var(--hairline);
+}
+.bc-row {
+  display: grid;
+  grid-template-columns: 10vw 1fr 6vw;
+  align-items: center;
+  gap: 1.5vw;
+  font-size: 1.4vh;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.bc-name { font-size: 1.25vh; }
+.bc-barwrap {
+  height: 1px;
+  background: var(--bar-bg);
+  position: relative;
+  overflow: visible;
+}
+.bc-barwrap > .bc-barfill {
+  position: absolute; left: 0; top: -2px;
+  height: 5px;
+  width: 0%;
+  background: var(--bar-default);
+  transition: width 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.bc-row.current .bc-barfill { background: var(--bar-current); }
+.bc-row.current { color: var(--fg); }
+.bc-row.current .bc-name { color: var(--fg); }
+.bc-v {
+  text-align: right;
+  font-feature-settings: "tnum" 1, "lnum" 1;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  font-size: 1.5vh;
+}
+
+/* ────────────────── edge mark (rotated decoration) ────────────────── */
+.edge-mark {
+  position: fixed;
+  right: 0.6vw; top: 50%;
+  transform: translateY(-50%) rotate(90deg);
+  transform-origin: right center;
+  font-size: 1.15vh;
+  letter-spacing: 0.42em;
+  text-transform: uppercase;
+  color: var(--muted);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* ────────────────── stale badge ────────────────── */
+.stale-badge {
+  position: fixed;
+  bottom: 3vh; left: 50%;
+  transform: translateX(-50%);
+  padding: 0.9vh 1.6vw;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  font-size: 1.15vh;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--muted);
+  background: rgba(0,0,0,0.6);
+  backdrop-filter: blur(8px);
+  z-index: 6;
+}
+
+/* ────────────────── entry animation (staggered editorial reveal) ────────────────── */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(0.6vh); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.landscape > *,
+.topbar > *,
+.edge-mark {
+  animation: rise 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.topbar .brand    { animation-delay: 80ms; }
+.topbar .chips    { animation-delay: 140ms; }
+.left             { animation-delay: 220ms; }
+.divider          { animation-delay: 320ms; }
+.right            { animation-delay: 380ms; }
+.edge-mark        { animation-delay: 600ms; }
