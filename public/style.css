@@ -73,13 +73,14 @@ body::before {
 
 /* ────────────────── left pane ────────────────── */
 .left .hero {
-  font-size: clamp(96px, 23vh, 300px);
+  font-size: clamp(72px, 18vh, 220px);
   font-weight: 200;
   line-height: 0.92;
   letter-spacing: -0.045em;
   color: var(--fg);
   margin: 1.2vh 0 0.4vh;
   font-feature-settings: "tnum" 1, "lnum" 1, "ss01";
+  white-space: nowrap;
 }
 .left .sub {
   font-size: 2.6vh;
@@ -309,50 +310,84 @@ body::before {
 
 /* ────────────────── responsive: portrait phones & tablets ────────────────── */
 @media (max-width: 820px), (orientation: portrait) {
-  html, body { overflow: auto; }
+  /* All chrome and content live on the same 5vw side gutter, so brand,
+     header labels, hero numbers, and footnote line up vertically. */
+  :root { --pad-x: 5vw; }
+
+  html, body { overflow-x: hidden; overflow-y: auto; }
   .landscape {
     height: auto;
     min-height: 100vh;
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr); /* allow shrink to prevent overflow */
     gap: 4vh;
-    padding: 8vh 5vw 14vh;
+    padding: 9vh var(--pad-x) 4vh;
   }
   .divider { display: none; }
-  .left, .right {
+  .pane { min-width: 0; }
+  .left, .right { min-width: 0; }
+  .right {
     border-top: 1px solid var(--hairline);
     padding-top: 4vh;
   }
-  .left { border-top: 0; padding-top: 0; }
 
-  /* Heroes scale by viewport WIDTH on portrait so they fit */
+  /* Heroes: tighter clamp + tabular-fit guard so commas, "kg" and the CO₂
+     tail all stay on one line on a 360 px phone. */
   .left .hero,
-  .right .brew-co2 { font-size: clamp(64px, 16vw, 140px); }
-  .left .sub { font-size: clamp(15px, 4vw, 22px); }
-  .right .drink-name { font-size: clamp(28px, 8vw, 56px); }
-  .right .delta-inline { font-size: clamp(32px, 9vw, 56px); }
-  .right .composition { font-size: clamp(13px, 3.6vw, 18px); }
-  .month-stats .n { font-size: clamp(28px, 8vw, 48px); }
-  .right .vs { font-size: clamp(11px, 2.6vw, 14px); }
-  .right .drink-floor { font-size: clamp(11px, 2.6vw, 14px); }
-  .label { font-size: clamp(11px, 2.6vw, 14px); }
+  .right .brew-co2 {
+    font-size: clamp(40px, 12vw, 96px);
+    line-height: 0.95;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: clip;
+  }
+  .hero .unit-tail,
+  .brew-co2 .unit-tail {
+    font-size: 0.38em;
+    vertical-align: 0.6em;
+  }
 
-  /* Previous list collapses to two-column on narrow screens */
+  /* Section heading hierarchy: month name slightly larger and stronger than
+     the field labels below it (ANTAL KOPPER / CO₂ UDLEDT). */
+  .label { font-size: clamp(10px, 2.6vw, 13px); }
+  .month-header {
+    font-size: clamp(13px, 3.4vw, 16px);
+    letter-spacing: 0.24em;
+    color: var(--fg);
+    margin-bottom: 1vh;
+  }
+  .left-bottom { gap: 1.2vh; }
+  .month-stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4vw;
+  }
+  .month-stats .n { font-size: clamp(24px, 7vw, 40px); }
+
+  .left .sub { font-size: clamp(14px, 3.8vw, 18px); }
+  .right .drink-line { gap: 2.5vw; }
+  .right .drink-name { font-size: clamp(26px, 7vw, 48px); }
+  .right .delta-inline { font-size: clamp(28px, 7.5vw, 48px); }
+  .right .composition { font-size: clamp(13px, 3.4vw, 16px); }
+  .right .vs { font-size: clamp(10px, 2.4vw, 13px); }
+  .right .drink-floor { font-size: clamp(10px, 2.4vw, 13px); }
+
+  /* Previous list collapses to floor + name + co2 columns on narrow screens */
   .previous-list li {
     grid-template-columns: auto 1fr auto;
     gap: 3vw;
-    font-size: clamp(13px, 3.6vw, 18px);
+    font-size: clamp(13px, 3.4vw, 16px);
   }
   .previous-list .pb-floor { font-size: clamp(10px, 2.4vw, 12px); }
   .previous-list .pb-time { display: none; }
 
-  /* Move brand and chips to compact strips at the very top */
+  /* Brand, status and footnote all share the 5vw gutter for vertical alignment. */
   .brand {
-    top: 1.5vh; left: 4vw;
+    top: 1.6vh; left: var(--pad-x);
     font-size: clamp(10px, 2.6vw, 13px);
     padding: 0;
   }
   .status {
-    top: 1.5vh; right: 4vw;
+    top: 1.6vh; right: var(--pad-x);
     gap: 1.5vw;
   }
   .status .chip {
@@ -364,8 +399,9 @@ body::before {
   .footnote {
     position: static;
     margin-top: 4vh;
-    padding: 0 4vw 2vh;
+    padding: 0 var(--pad-x) 3vh;
     max-width: none;
     font-size: clamp(11px, 2.8vw, 13px);
+    line-height: 1.5;
   }
 }
