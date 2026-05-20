@@ -76,18 +76,24 @@ const EQUIVALENCES = [
     const n = Math.max(1, Math.round(g / 80));
     return `≈ ${fmtDa(n)} ${n === 1 ? "banan" : "bananer"} fra Costa Rica`;
   },
-  // ~100 g CO₂ per hour of Netflix streaming on a TV
-  (g) => {
-    if (g <= 0) return "";
-    const h = g / 100;
-    if (h < 0.5) return "";
-    return `≈ ${fmtDa(h, h < 10 ? 1 : 0)} ${Math.round(h) === 1 ? "time" : "timer"} Netflix`;
-  },
   // ~50 g CO₂ per minute in a hot shower (gas-heated)
   (g) => {
     if (g <= 0) return "";
     const m = Math.max(1, Math.round(g / 50));
     return `≈ ${fmtDa(m)} ${m === 1 ? "minut" : "minutter"} varmt bad`;
+  },
+  // ~10 g CO₂ per full iPhone charge (Danish grid intensity ~ 100 g/kWh × ~15 Wh battery)
+  (g) => {
+    if (g <= 0) return "";
+    const n = Math.max(1, Math.round(g / 10));
+    return `≈ ${fmtDa(n)} ${n === 1 ? "opladning" : "opladninger"} af en iPhone`;
+  },
+  // ~150 g CO₂ per kg apples shipped from New Zealand
+  (g) => {
+    if (g <= 0) return "";
+    const kg = g / 150;
+    if (kg < 0.5) return "";
+    return `≈ ${fmtDa(kg, kg < 10 ? 1 : 0)} kg æbler fra New Zealand`;
   },
 ];
 const DA_MONTHS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
