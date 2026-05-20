@@ -4,9 +4,6 @@
   --muted: rgba(20, 20, 20, 0.66);
   --muted-dim: rgba(20, 20, 20, 0.45);
   --hairline: rgba(20, 20, 20, 0.18);
-  --bar-bg: rgba(20, 20, 20, 0.12);
-  --bar-default: rgba(20, 20, 20, 0.55);
-  --bar-current: #141414;
   --up: #8c4a1d;
   --down: #3f6a2a;
   --pad-x: 4vw;
@@ -26,7 +23,6 @@ html, body {
 }
 
 body::before {
-  /* Subtle paper-grain noise (inline SVG, no extra request) */
   content: "";
   position: fixed; inset: 0;
   pointer-events: none;
@@ -36,33 +32,10 @@ body::before {
   z-index: 10;
 }
 
-/* ────────────────── top bar ────────────────── */
-.topbar {
-  position: fixed; top: 0; left: 0; right: 0;
-  display: flex; justify-content: space-between; align-items: center;
-  padding: 2.6vh var(--pad-x);
-  z-index: 5;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  font-size: 1.7vh;
-  font-weight: 400;
-}
-.brand { color: var(--fg); }
-.chips { display: flex; gap: 0.8vw; }
-.chip {
-  padding: 0.85vh 1.3vw;
-  border: 1px solid var(--hairline);
-  border-radius: 999px;
-  color: var(--muted);
-  letter-spacing: 0.2em;
-  font-size: 1.55vh;
-}
-.chip.alt { color: var(--fg); border-color: rgba(20,20,20,0.55); }
-
 /* ────────────────── layout ────────────────── */
 .landscape {
   height: 100vh;
-  padding: 12vh var(--pad-x) 5vh;
+  padding: 6vh var(--pad-x) 6vh;
   display: grid;
   grid-template-columns: 1fr 1px 1.15fr;
   gap: 5vw;
@@ -82,7 +55,7 @@ body::before {
 
 /* ────────────────── left pane ────────────────── */
 .left .hero {
-  font-size: clamp(96px, 18.5vh, 240px);
+  font-size: clamp(96px, 19vh, 240px);
   font-weight: 200;
   line-height: 0.92;
   letter-spacing: -0.045em;
@@ -113,7 +86,7 @@ body::before {
 
 /* ────────────────── right pane ────────────────── */
 .right .drink-name {
-  font-size: clamp(36px, 7vh, 96px);
+  font-size: clamp(36px, 6vh, 80px);
   font-weight: 300;
   letter-spacing: -0.025em;
   line-height: 1;
@@ -126,19 +99,29 @@ body::before {
   margin-top: 0.6vh;
   font-weight: 300;
 }
-.right .delta-row {
-  display: flex; align-items: baseline; gap: 1.4vw;
-  margin-top: 3vh;
+.right .brew-co2 {
+  margin-top: auto;
+  font-size: clamp(96px, 19vh, 240px);
+  font-weight: 200;
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  color: var(--fg);
+  font-feature-settings: "tnum" 1, "lnum" 1, "ss01";
+  padding-top: 4vh;
 }
-.right .delta {
-  font-size: clamp(60px, 12vh, 170px);
+.right .delta-line {
+  display: flex; align-items: baseline; gap: 1.2vw;
+  margin-top: 1vh;
+  padding-bottom: 0;
+}
+.right .delta-inline {
+  font-size: 4vh;
   font-weight: 300;
-  line-height: 0.95;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.02em;
   font-feature-settings: "tnum" 1, "lnum" 1;
 }
-.right .delta.up   { color: var(--up); }
-.right .delta.down { color: var(--down); }
+.right .delta-inline.up   { color: var(--up); }
+.right .delta-inline.down { color: var(--down); }
 .right .vs {
   font-size: 1.8vh;
   color: var(--muted);
@@ -147,64 +130,36 @@ body::before {
   font-weight: 500;
 }
 
-/* ────────────────── comparison bars (hairline + thin fill) ────────────────── */
-.bar-comparison {
-  margin-top: auto;
-  display: flex; flex-direction: column; gap: 1.4vh;
-  padding-top: 3vh;
-  border-top: 1px solid var(--hairline);
-}
-.bc-row {
-  display: grid;
-  grid-template-columns: 12vw 1fr 8vw;
-  align-items: center;
-  gap: 1.5vw;
-  font-size: 1.8vh;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+/* "CO₂" tail on big numbers — same size, slightly muted to keep the number primary */
+.unit-tail {
   color: var(--muted);
-}
-.bc-name { font-size: 1.7vh; font-weight: 500; }
-.bc-barwrap {
-  height: 2px;
-  background: var(--bar-bg);
-  position: relative;
-  overflow: visible;
-}
-.bc-barwrap > .bc-barfill {
-  position: absolute; left: 0; top: -3px;
-  height: 8px;
-  width: 0%;
-  background: var(--bar-default);
-  transition: width 900ms cubic-bezier(0.22, 1, 0.36, 1);
-}
-.bc-row.current .bc-barfill { background: var(--bar-current); }
-.bc-row.current { color: var(--fg); }
-.bc-row.current .bc-name { color: var(--fg); }
-.bc-v {
-  text-align: right;
-  font-feature-settings: "tnum" 1, "lnum" 1;
-  letter-spacing: 0.02em;
-  text-transform: none;
-  font-size: 2.2vh;
-  font-weight: 400;
-  color: var(--fg);
+  font-weight: 200;
+  margin-left: 0.15em;
+  letter-spacing: -0.02em;
 }
 
-/* ────────────────── edge mark (rotated decoration) ────────────────── */
-.edge-mark {
+/* ────────────────── corner status (live + clock) ────────────────── */
+.status {
   position: fixed;
-  right: 0.6vw; top: 50%;
-  transform: translateY(-50%) rotate(90deg);
-  transform-origin: right center;
-  font-size: 1.5vh;
-  letter-spacing: 0.42em;
-  text-transform: uppercase;
-  color: var(--muted-dim);
-  white-space: nowrap;
-  pointer-events: none;
-  z-index: 4;
+  bottom: 3.2vh; right: var(--pad-x);
+  display: flex; gap: 0.7vw;
+  z-index: 5;
+}
+.status .chip {
+  padding: 0.85vh 1.3vw;
+  border: 1px solid var(--hairline);
+  border-radius: 999px;
+  color: var(--muted);
+  letter-spacing: 0.2em;
+  font-size: 1.45vh;
   font-weight: 500;
+  text-transform: uppercase;
+  background: rgba(243, 239, 231, 0.6);
+  backdrop-filter: blur(4px);
+}
+.status .chip.alt {
+  color: var(--fg);
+  border-color: rgba(20, 20, 20, 0.55);
 }
 
 /* ────────────────── stale badge ────────────────── */
@@ -225,19 +180,16 @@ body::before {
   font-weight: 500;
 }
 
-/* ────────────────── entry animation (staggered editorial reveal) ────────────────── */
+/* ────────────────── entry animation ────────────────── */
 @keyframes rise {
   from { opacity: 0; transform: translateY(0.6vh); }
   to   { opacity: 1; transform: translateY(0); }
 }
 .landscape > *,
-.topbar > *,
-.edge-mark {
+.status {
   animation: rise 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
-.topbar .brand    { animation-delay: 80ms; }
-.topbar .chips    { animation-delay: 140ms; }
-.left             { animation-delay: 220ms; }
-.divider          { animation-delay: 320ms; }
-.right            { animation-delay: 380ms; }
-.edge-mark        { animation-delay: 600ms; }
+.left     { animation-delay: 80ms; }
+.divider  { animation-delay: 180ms; }
+.right    { animation-delay: 240ms; }
+.status   { animation-delay: 500ms; }

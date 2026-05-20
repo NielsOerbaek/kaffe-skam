@@ -9,14 +9,6 @@
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">KAFFE&nbsp;—&nbsp;SKAM</div>
-    <nav class="chips">
-      <span class="chip" id="chip-status">Live</span>
-      <span class="chip alt" id="chip-time">—</span>
-    </nav>
-  </header>
-
   <main class="landscape" id="root">
     <section class="pane left">
       <div class="label">Dagens kaffe-CO₂eq</div>
@@ -32,26 +24,18 @@
       <div class="label" id="last-label">Seneste bryg</div>
       <div class="drink-name" id="drink-name">—</div>
       <div class="composition" id="composition">&nbsp;</div>
-      <div class="delta-row">
-        <div class="delta" id="delta">—</div>
-        <div class="vs" id="vs">&nbsp;</div>
-      </div>
-      <div class="bar-comparison">
-        <div class="bc-row">
-          <div class="bc-name">Kaffe</div>
-          <div class="bc-barwrap"><div class="bc-barfill" id="coffee-bar"></div></div>
-          <div class="bc-v" id="coffee-v">—</div>
-        </div>
-        <div class="bc-row current">
-          <div class="bc-name">Dette bryg</div>
-          <div class="bc-barwrap"><div class="bc-barfill" id="brew-bar"></div></div>
-          <div class="bc-v" id="brew-v">—</div>
-        </div>
+      <div class="brew-co2" id="brew-co2">—</div>
+      <div class="delta-line">
+        <span class="delta-inline" id="delta">—</span>
+        <span class="vs" id="vs">&nbsp;</span>
       </div>
     </section>
   </main>
 
-  <aside class="edge-mark" aria-hidden="true">CO₂&nbsp;·&nbsp;EVERSYS&nbsp;·&nbsp;OS&nbsp;OG&nbsp;TAL</aside>
+  <div class="status" aria-hidden="false">
+    <span class="chip" id="chip-status">Live</span>
+    <span class="chip alt" id="chip-time">—</span>
+  </div>
   <div class="stale-badge" id="stale-badge" hidden>signal mistet</div>
 
   <script src="/static/app.js"></script>

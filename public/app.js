@@ -31,6 +31,14 @@ function fmtG(g) {
   if (g >= 1000) return (g / 1000).toFixed(2).replace(".", ",") + " kg";
   return Math.round(g) + " g";
 }
+function setBigNumber(el, g) {
+  // "57 g" + " CO₂" (CO₂ rendered as a slightly muted tail, same size)
+  if (g == null) { el.textContent = "—"; return; }
+  el.innerHTML = `${escape(fmtG(g))}<span class="unit-tail">&nbsp;CO₂</span>`;
+}
+function escape(s) {
+  return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+}
 function fmtDriveKm(co2_g) {
   const km = co2_g / 200;
   if (!co2_g) return " ";
@@ -65,7 +73,7 @@ async function refresh() {
 }
 
 function render(s) {
-  $("today-co2").textContent = fmtG(s.today.co2_g);
+  setBigNumber($("today-co2"), s.today.co2_g);
   $("today-equiv").textContent = fmtDriveKm(s.today.co2_g);
   $("today-cups").textContent = s.today.cups;
   $("month-co2").textContent = fmtG(s.month.co2_g);
@@ -76,17 +84,13 @@ function render(s) {
     $("last-label").textContent = "Seneste bryg";
     $("drink-name").textContent = "Venter på første kop…";
     $("composition").innerHTML = " ";
-    $("delta").textContent = "—";
+    $("brew-co2").textContent = "—";
+    $("delta").textContent = "";
     $("vs").textContent = "";
-    $("coffee-bar").style.width = "0%";
-    $("brew-bar").style.width = "0%";
-    $("coffee-v").textContent = "—";
-    $("brew-v").textContent = "—";
     return;
   }
 
   const b = s.lastBrew;
-  // "2026-05-20T12:22:54" → "20. maj kl. 12.22"
   const ts = fmtBrewTs(b.machineTs);
   $("last-label").textContent = "Seneste bryg · " + ts;
   $("drink-name").textContent = DA_DRINK[b.type] ?? b.displayName;
@@ -97,18 +101,13 @@ function render(s) {
   else if (b.splashCount > 1) parts.push(`+ ${b.splashCount} skvæt`);
   $("composition").textContent = parts.join("  ·  ");
 
+  setBigNumber($("brew-co2"), b.co2G);
+
   const d = b.deltaVsCoffee;
+  const baseline = b.co2G - d;
   $("delta").textContent = (d >= 0 ? "+" : "−") + fmtG(Math.abs(d));
   $("delta").classList.toggle("up", d >= 0);
   $("delta").classList.toggle("down", d < 0);
-
-  const baseline = b.co2G - d;
-  $("coffee-v").textContent = fmtG(baseline);
-  $("brew-v").textContent   = fmtG(b.co2G);
-  const max = Math.max(baseline, b.co2G, 1);
-  $("coffee-bar").style.width = `${(baseline / max) * 100}%`;
-  $("brew-bar").style.width   = `${(b.co2G / max) * 100}%`;
-
   $("vs").textContent = `vs. almindelig kaffe (${fmtG(baseline)})`;
 }
 
