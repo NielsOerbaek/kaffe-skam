@@ -1,0 +1,32 @@
+{
+  "co2": {
+    "beansFactorGPerG": 1.24,
+    "milkFactorGPerMl": 1.4,
+    "coffeeBaselineG": 8.68
+  },
+  "beansDefaultsG": {
+    "RISTRETTO": 8, "ESPRESSO": 7, "COFFEE": 7,
+    "AMERICANO": 7, "MILK_COFFEE": 7, "CAPPUCCINO": 7,
+    "ESPRESSO_MACCHIATO": 7, "LATTE_MACCHIATO": 7,
+    "WHITE_AMERICANO": 7, "FILTER_COFFEE": 10,
+    "COFFEE_POT": 14, "FILTER_COFFEE_POT": 20,
+    "_default": 7
+  },
+  "calibration": {
+    "minBrewsBetweenCalibrations": 50,
+    "maxScaleDelta": 0.5
+  },
+  "polling": {
+    "brewsIntervalMs": 5000,
+    "countersIntervalMs": 60000,
+    "splashWindowMs": 300000,
+    "backoffMs": [5000, 10000, 30000, 60000]
+  },
+  "server": {
+    "port": 8080,
+    "stateRefreshMs": 3000
+  },
+  "api": {
+    "baseUrl": "https://api.eversys-telemetry.com"
+  }
+}
