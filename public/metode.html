@@ -52,21 +52,61 @@
         kaffemaskinen som helhed; resten ville støje uden at flytte
         rangordenen mellem espresso og latte. Det er den vægtning, der
         gør det meningsfuldt at sammenligne en sort kaffe (≈13 g CO₂)
-        med en cappuccino (≈170 g) — det er <em>mælken</em>, ikke
+        med en cappuccino (≈210 g) — det er <em>mælken</em>, ikke
         elspareren, der gør forskellen.
       </p>
 
-      <h2>Estimat af bønner pr. bryg</h2>
+      <h2>Bønner pr. bryg</h2>
       <p>
-        API'et fortæller os ikke, hvor mange gram bønner der gik i
-        hver enkelt kop. Vi gætter ud fra drinktypen
-        (espresso = 7 g, dobbelt = 14 g osv.) og skalerer regelmæssigt
-        med en kalibrerings-faktor <em>k</em>, så den samlede sum
-        matcher maskinens bønne-tæller. Lige nu er <em>k</em> ≈ 1,5 på
-        begge maskiner; det betyder, at en espresso reelt får 10,5 g
-        bønner i estimatet. Tallet for et enkelt bryg kan derfor være
-        let unøjagtigt, men de daglige og månedlige totaler er præcise
-        til et kg.
+        API'et fortæller os ikke direkte, hvor mange gram bønner der
+        gik i hver enkelt kop. Vi slår op i en lille tabel
+        (<code>beansByProduct</code>) på navnet for den knap, der blev
+        trykket — fx <em>Espresso</em> = 7 g, <em>Dbl. Latte</em> = 14 g,
+        <em>Strong Coffee</em> = 8 g, <em>White tea 80°</em> = 0 g.
+      </p>
+      <p>
+        Hver knap-værdi skaleres derefter med en kalibrerings-faktor
+        <em>k</em>, som vi regelmæssigt justerer, så den samlede sum
+        af vores estimater matcher maskinens fysiske bønne-tæller.
+        Lige nu er <em>k</em> ≈ 1,5 på begge maskiner; det betyder,
+        at en espresso reelt får ~10,5 g bønner i estimatet. Tallet
+        for et enkelt bryg kan være let unøjagtigt, men de daglige
+        og månedlige totaler er præcise til et kg.
+      </p>
+
+      <h2>Mælk pr. bryg</h2>
+      <p>
+        Eversys logger et tal i et felt der hedder
+        <code>milk.consumption</code>, men det er <em>ikke</em> i
+        millilitre — det er en intern pumpetælling. Vi har kalibreret
+        det mod en konkret <em>Milk for Choco</em>-portion på ~175 ml,
+        hvor API'et rapporterede <code>consumption = 14</code>. Det
+        giver
+      </p>
+      <pre class="formula">mælk (ml) = consumption × 12,5</pre>
+      <p>
+        For enkelt-bryg holder det vand: en Cappuccino ender på
+        ~150 ml, en Latte på ~140 ml, en Cortado på ~60 ml. For
+        <em>dobbelte</em> drikke (Dbl. Latte, Dbl. Cappuccino o.l.)
+        rapporterer API'et samme <code>consumption</code> som det
+        enkelte alternativ — et kendt aftryk fra Eversys-firmwaren.
+        I de tilfælde overskriver vi med en fast værdi pr. produkt
+        i <code>milkByProduct</code>.
+      </p>
+
+      <h2>Navne på drikke</h2>
+      <p>
+        Eversys' API bruger to forskellige indekser for det samme
+        produkt: <code>/product-parameters</code> giver navne efter
+        <code>productId</code>, men brygge-historikken refererer til
+        knappen via <code>keyId = productId + 1</code>. Vi forskyder
+        derfor opslaget, så et bryg med <code>keyId = 16</code>
+        viser <em>Milk for Choco</em> (productId 15) og ikke <em>Green
+        Tea 85°</em>. API'ets indbyggede <code>drink_type</code>-felt
+        ignorerer vi — det er firmwarens egen klassifikation
+        og ikke til at stole på (en Latte registreres som
+        <code>CAPPUCCINO</code>, en Espresso som <code>MILK_COFFEE</code>
+        osv.).
       </p>
 
       <h2>Skvæt-mælk og opfølgnings-bryg</h2>
