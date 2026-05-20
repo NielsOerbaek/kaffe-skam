@@ -41,12 +41,6 @@ function setBigNumber(el, g) {
 function smallNumberHtml(g) {
   return `${escape(fmtG(g))}<span class="unit-tail">&nbsp;CO₂</span>`;
 }
-function fmtDriveKm(co2_g) {
-  const km = co2_g / 200;
-  if (!co2_g) return " ";
-  if (km >= 0.1) return `≈ ${km.toFixed(1).replace(".", ",")} km i bil`;
-  return "≈ et par meter i bil";
-}
 function fmtClock(d = new Date()) {
   const p = (n) => String(n).padStart(2, "0");
   return `${p(d.getHours())}.${p(d.getMinutes())}`;
@@ -90,10 +84,9 @@ async function refresh() {
 }
 
 function render(s) {
-  // Left top — cups today as the hero, CO₂ + drive-equivalent as supporting lines
-  $("today-cups").textContent = s.today.cups;
-  $("today-co2-line").textContent = `= ${fmtG(s.today.co2_g)} CO₂eq`;
-  $("today-equiv").textContent = fmtDriveKm(s.today.co2_g);
+  // Left top — today's CO₂ as the hero; cups count as the supporting line
+  setBigNumber($("today-co2"), s.today.co2_g);
+  $("today-cups-line").textContent = `${s.today.cups.toLocaleString("da-DK")} ${s.today.cups === 1 ? "kop" : "kopper"} i dag`;
 
   // Left bottom — "<Month> <Year>" header + month-to-date stats
   $("month-header").textContent = fmtMonthHeader();
@@ -137,7 +130,7 @@ function render(s) {
   $("delta").textContent = fmtDeltaPct(d, baseline);
   $("delta").classList.toggle("up", d >= 0);
   $("delta").classList.toggle("down", d < 0);
-  $("vs").textContent = `vs. almindelig kaffe (${fmtG(baseline)})`;
+  $("vs").textContent = `vs. sort kaffe (${fmtG(baseline)})`;
 
   renderPrevious(previous);
 }

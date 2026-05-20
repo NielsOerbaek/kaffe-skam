@@ -4,7 +4,7 @@ import { join, extname, normalize } from "node:path";
 import type { Store } from "./store.ts";
 import type { Config } from "./config.ts";
 import type { ApiState } from "./types.ts";
-import { humanizeType, deltaVsCoffee } from "./co2.ts";
+import { humanizeType } from "./co2.ts";
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -25,12 +25,13 @@ export function createServer(opts: ServerOpts): Server {
 }
 
 function handleRequest(req: IncomingMessage, res: ServerResponse, opts: ServerOpts) {
-  const url = req.url ?? "/";
+  const rawUrl = req.url ?? "/";
+  const path = rawUrl.split("?")[0] ?? "/";
 
-  if (url === "/api/state") return sendState(res, opts);
-  if (url === "/") return serveStatic(res, opts.publicDir, "index.html");
-  if (url.startsWith("/static/")) {
-    const rel = url.slice("/static/".length);
+  if (path === "/api/state") return sendState(res, opts);
+  if (path === "/") return serveStatic(res, opts.publicDir, "index.html");
+  if (path.startsWith("/static/")) {
+    const rel = path.slice("/static/".length);
     return serveStatic(res, opts.publicDir, rel);
   }
   res.statusCode = 404; res.end("not found");
@@ -46,6 +47,16 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
   const recent = opts.store.getRecentBrews(6);
 
   const floorByMachine = new Map(opts.config.machines.map(m => [m.id, m.floor]));
+
+  // Live "sort kaffe" baseline: average each machine's calibration k, then
+  // compute a plain COFFEE's CO₂ at the current calibrated dose.
+  const ks = opts.config.machines.map(m => {
+    const raw = opts.store.getMeta(`beans_calibration_k_${m.id}`);
+    return raw == null ? 1.0 : Number(raw);
+  });
+  const avgK = ks.length ? ks.reduce((s, k) => s + k, 0) / ks.length : 1.0;
+  const coffeeBeansG = (opts.config.beansDefaultsG["COFFEE"] ?? 7) * avgK;
+  const baselineG = coffeeBeansG * opts.config.co2.beansFactorGPerG;
 
   const lastPollOkAt = opts.store.getMeta("last_poll_ok_at");
   const stale = lastPollOkAt
@@ -64,7 +75,7 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
       milkMl: b.milkMl,
       co2G: b.co2G,
       splashCount: b.splashIds.length,
-      deltaVsCoffee: deltaVsCoffee(b.co2G, opts.config.co2),
+      deltaVsCoffee: b.co2G - baselineG,
     })),
     stale,
     lastPollOkAt,
