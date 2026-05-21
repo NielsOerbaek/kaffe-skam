@@ -382,115 +382,166 @@ body::after {
 
 /* ────────────────── responsive: portrait phones & tablets ────────────────── */
 @media (max-width: 820px), (orientation: portrait) {
-  /* All chrome and content live on the same 5vw side gutter, so brand,
-     header labels, hero numbers, and footnote line up vertically. */
-  :root { --pad-x: 5vw; }
+  :root {
+    --pad-x: 5vw;
+    --header-h: 52px; /* fixed px: predictable on all phone sizes */
+    --nav-h: 56px;    /* bottom tab bar height */
+  }
 
   html, body { overflow-x: hidden; overflow-y: auto; }
+
+  /* ── Header: frosted bar, fixed pixel height ── */
+  body::after { height: var(--header-h); }
+
+  .brand {
+    top: 0; left: var(--pad-x);
+    height: var(--header-h);
+    font-size: clamp(12px, 3.2vw, 15px);
+    letter-spacing: 0.18em;
+    padding: 0;
+  }
+  .status {
+    top: 0; right: var(--pad-x);
+    height: var(--header-h);
+    gap: 2vw;
+  }
+  .status .chip {
+    padding: 6px 12px;
+    font-size: clamp(11px, 2.8vw, 13px);
+    letter-spacing: 0.15em;
+  }
+
+  /* ── Bottom navigation tab bar ── */
+  .nav {
+    position: fixed;
+    bottom: 0; left: 0; right: 0; top: auto;
+    height: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+    padding: 0 var(--pad-x) env(safe-area-inset-bottom, 0px);
+    background: rgba(243, 239, 231, 0.94);
+    backdrop-filter: blur(14px) saturate(140%);
+    -webkit-backdrop-filter: blur(14px) saturate(140%);
+    border-top: 1px solid var(--hairline);
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    gap: 0;
+    margin: 0;
+    transform: none;
+    font-size: clamp(11px, 2.8vw, 13px);
+    letter-spacing: 0.18em;
+    z-index: 8;
+    white-space: nowrap;
+  }
+  .nav a {
+    flex: 1;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: var(--nav-h);
+    padding: 0;
+    min-height: unset;
+  }
+
+  /* ── Index page layout ── */
   .landscape {
     height: auto;
     min-height: 100vh;
-    grid-template-columns: minmax(0, 1fr); /* allow shrink to prevent overflow */
-    gap: 4vh;
-    padding: 9vh var(--pad-x) 4vh;
+    min-height: 100dvh;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: calc(var(--header-h) + 28px) var(--pad-x)
+             calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 28px);
   }
   .divider { display: none; }
   .pane { min-width: 0; }
   .left, .right { min-width: 0; }
   .right {
     border-top: 1px solid var(--hairline);
-    padding-top: 4vh;
+    padding-top: 7vw;
+    margin-top: 7vw;
   }
 
-  /* Heroes: tighter clamp + tabular-fit guard so commas, "kg" and the CO₂
-     tail all stay on one line on a 360 px phone. */
-  .left .hero,
-  .right .brew-co2 {
-    font-size: clamp(40px, 12vw, 96px);
-    line-height: 0.95;
+  /* ── Hero numbers: larger, no descender clipping ── */
+  .left .hero {
+    font-size: clamp(60px, 17vw, 120px);
+    line-height: 1;
+    padding-bottom: 0.06em; /* room for descenders */
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: clip;
+    overflow: visible;
+  }
+  .right .brew-co2 {
+    font-size: clamp(52px, 14vw, 96px);
+    line-height: 1;
+    padding-bottom: 0.06em;
+    white-space: nowrap;
+    overflow: visible;
   }
   .hero .unit-tail,
   .brew-co2 .unit-tail {
-    font-size: 0.38em;
-    vertical-align: 0.6em;
+    font-size: 0.36em;
+    vertical-align: 0.62em;
   }
 
-  /* Section heading hierarchy: month name slightly larger and stronger than
-     the field labels below it (ANTAL KOPPER / CO₂ UDLEDT). */
-  .label { font-size: clamp(10px, 2.6vw, 13px); }
-  .month-header {
-    font-size: clamp(13px, 3.4vw, 16px);
-    letter-spacing: 0.24em;
-    color: var(--fg);
-    padding-bottom: 1.2vh;
-    border-bottom: 1px solid var(--hairline);
-    margin-bottom: 1.4vh;
+  /* ── Labels and text hierarchy ── */
+  .label { font-size: clamp(11px, 2.8vw, 13px); letter-spacing: 0.2em; }
+
+  .left .sub { font-size: clamp(16px, 4.2vw, 20px); margin-top: 4px; }
+  .left .sub-faint { font-size: clamp(13px, 3.4vw, 16px); margin-top: 2px; }
+
+  /* ── Month stats: separated from today with its own border ── */
+  .left-bottom {
+    padding-top: 6vw;
+    margin-top: 6vw;
+    border-top: 1px solid var(--hairline);
+    gap: 1.4vh;
   }
-  .left-bottom { gap: 1.2vh; }
+  .month-header {
+    font-size: clamp(14px, 3.6vw, 17px);
+    letter-spacing: 0.22em;
+    color: var(--fg);
+    padding-bottom: 1.4vh;
+    border-bottom: 1px solid var(--hairline);
+    margin-bottom: 1.6vh;
+  }
   .month-stats {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 4vw;
+    margin-top: 1.2vh;
   }
-  .month-stats .n { font-size: clamp(24px, 7vw, 40px); }
+  .month-stats .n { font-size: clamp(30px, 8vw, 48px); }
 
-  .left .sub { font-size: clamp(14px, 3.8vw, 18px); }
-  .right .drink-line { gap: 2.5vw; }
-  .right .drink-name { font-size: clamp(26px, 7vw, 48px); }
-  .right .delta-inline { font-size: clamp(28px, 7.5vw, 48px); }
-  .right .composition { font-size: clamp(13px, 3.4vw, 16px); }
-  .right .vs { font-size: clamp(10px, 2.4vw, 13px); }
-  .right .drink-floor { font-size: clamp(10px, 2.4vw, 13px); }
+  /* ── Last brew section ── */
+  .right .drink-line { gap: 2.5vw; margin-top: 1.2vh; }
+  .right .drink-name { font-size: clamp(34px, 9vw, 60px); }
+  .right .drink-floor { font-size: clamp(12px, 3vw, 15px); }
+  .right .composition { font-size: clamp(14px, 3.6vw, 17px); margin-top: 1vh; }
+  .right .delta-inline { font-size: clamp(30px, 8vw, 48px); }
+  .right .vs { font-size: clamp(12px, 3vw, 15px); }
 
-  /* Previous list collapses to floor + name + co2 columns on narrow screens */
+  /* ── Previous brews list ── */
   .previous-list li {
     grid-template-columns: auto 1fr auto;
     gap: 3vw;
-    font-size: clamp(13px, 3.4vw, 16px);
+    font-size: clamp(14px, 3.6vw, 17px);
   }
-  .previous-list .pb-floor { font-size: clamp(10px, 2.4vw, 12px); }
+  .previous-list .pb-floor { font-size: clamp(11px, 2.8vw, 13px); }
   .previous-list .pb-time { display: none; }
 
-  /* Brand, nav, status and footnote all share the 5vw gutter for alignment. */
-  .brand {
-    top: 1.6vh; left: var(--pad-x);
-    font-size: clamp(10px, 2.6vw, 13px);
-    padding: 0;
+  /* ── Stale badge: float above bottom nav ── */
+  .stale-badge {
+    bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 12px);
   }
-  .status {
-    top: 1.6vh; right: var(--pad-x);
-    gap: 1.5vw;
-  }
-  .status .chip {
-    padding: 0.5vh 2vw;
-    font-size: clamp(10px, 2.4vw, 12px);
-  }
-  /* On portrait the nav sits as its own strip below brand + status, so it
-     doesn't collide with either. */
-  .nav {
-    top: auto;
-    bottom: auto;
-    position: static;
-    transform: none;
-    margin: 5vh var(--pad-x) -2vh;
-    justify-content: flex-start;
-    flex-wrap: wrap;
-    gap: 3vw;
-    font-size: clamp(10px, 2.6vw, 13px);
-  }
-  .nav a { padding: 0.4vh 0; }
 
-  /* Footnote becomes part of the flow at the bottom of the document */
+  /* ── Footnote: in-flow at bottom of page ── */
   .footnote {
     position: static;
-    margin-top: 4vh;
-    padding: 0 var(--pad-x) 3vh;
+    margin-top: 5vw;
+    padding: 0 var(--pad-x) 3vw;
     max-width: none;
     font-size: clamp(11px, 2.8vw, 13px);
-    line-height: 1.5;
+    line-height: 1.6;
   }
 }
 
@@ -663,6 +714,8 @@ body::after {
   margin: 2vh 0;
   text-align: center;
   font-feature-settings: "tnum" 1, "lnum" 1;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 .prose a {
   color: var(--fg);
@@ -674,15 +727,22 @@ body::after {
 
 /* sub-page mobile tweaks */
 @media (max-width: 820px), (orientation: portrait) {
-  .page { padding: 14vh var(--pad-x) 4vh; }
-  .page-head { padding-bottom: 2vh; margin-bottom: 3vh; }
+  /* Clear fixed header at top and bottom nav at bottom */
+  .page {
+    padding: calc(var(--header-h) + 28px) var(--pad-x)
+             calc(var(--nav-h) + env(safe-area-inset-bottom, 0px) + 28px);
+  }
+  .page-head { padding-bottom: 2.5vh; margin-bottom: 3.5vh; }
+  .page-title { font-size: clamp(28px, 8vw, 48px); }
+  .page-stats { font-size: clamp(13px, 3.4vw, 16px); }
+
   .dl-header { display: none; }
   .drink-list li {
-    /* Two-column main row + a full-width bar row below */
+    /* drink name + co2 on one row; bar full-width below; secondary stats last */
     grid-template-columns: 1fr auto;
-    gap: 1vh 1.5vw;
-    padding: 1.8vh 0;
-    font-size: clamp(15px, 4vw, 19px);
+    gap: 1.2vh 1.5vw;
+    padding: 2vh 0;
+    font-size: clamp(16px, 4.2vw, 20px);
   }
   .drink-list li .dl-drink { order: 1; grid-column: 1; }
   .drink-list li .dl-co2   { order: 2; grid-column: 2; }
@@ -691,7 +751,7 @@ body::after {
   .drink-list li .dl-share,
   .drink-list li .dl-delta {
     order: 4;
-    font-size: clamp(11px, 3vw, 13px);
+    font-size: clamp(12px, 3vw, 14px);
     color: var(--muted);
   }
   .drink-list li .dl-cups   { grid-column: 1; text-align: left; }
@@ -699,5 +759,11 @@ body::after {
   .drink-list li .dl-delta  { grid-column: 2; text-align: right; }
   .drink-list li .dl-cups::after  { content: " kopper"; color: var(--muted); font-size: 0.9em; }
   .drink-list li .dl-share::after { content: " af CO₂"; color: var(--muted); font-size: 0.9em; }
-  #chart { height: 44vh; min-height: 240px; }
+
+  #chart { height: 46vh; min-height: 260px; }
+  .chart-toggle button {
+    padding: 10px 10px;
+    min-height: 44px;
+    font-size: clamp(11px, 2.8vw, 13px);
+  }
 }
