@@ -7,9 +7,12 @@
   <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
   <style>
     /*
-      Physical display: 212 × 104 px at ~104 dpi
+      Physical display: 212 × 104 px @ ~104 dpi (LILYGO T5 2.13" e-paper)
       Preview at 3×:    636 × 312 px
-      All values below are 3× the on-device pixel.
+      Designed for 1–2 m glance reading: the CO₂ number is the headline,
+      everything else is close-read context. No opacity-based emphasis —
+      e-ink can only reliably distinguish full black from paper, so
+      hierarchy comes from typographic weight and size, not gray tone.
     */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -25,12 +28,7 @@
       font-family: system-ui, -apple-system, sans-serif;
     }
 
-    .device {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 14px;
-    }
+    .device { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
 
     .device-label {
       font-size: 11px;
@@ -51,30 +49,27 @@
       border-radius: 6px;
       box-shadow: inset 0 0 0 2px rgba(0,0,0,0.15);
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-weight: 700;
       -webkit-font-smoothing: antialiased;
     }
 
     .screen.refreshing { background: #0a0a0a; }
     .screen.refreshing > * { visibility: hidden; }
 
-    /* ── Top zone: last drink info ────────────────────────────── */
-    .s-top {
+    /* ── Top: drink name + floor ──────────────────────────────── */
+    .s-head {
       position: absolute;
-      top: 18px; left: 18px; right: 18px;
-      bottom: 93px;          /* leaves 93px for bottom bar */
+      top: 14px; left: 18px; right: 18px;
       display: flex;
-      flex-direction: column;
+      align-items: baseline;
       justify-content: space-between;
-    }
-
-    /* Row 1: drink name + floor */
-    .s-row { display: flex; align-items: baseline; justify-content: space-between; gap: 9px; }
-
-    .s-drink {
-      font-size: 36px;
-      font-weight: 700;
-      letter-spacing: -0.03em;
+      gap: 12px;
       line-height: 1;
+    }
+    .s-drink {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.025em;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -82,65 +77,92 @@
       min-width: 0;
     }
     .s-floor {
-      font-size: 15px;
-      letter-spacing: 0.14em;
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
       text-transform: uppercase;
-      opacity: 0.42;
       white-space: nowrap;
       flex-shrink: 0;
     }
 
-    /* Row 2: CO₂ + vs-ratio */
-    .s-co2   { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; }
-    .s-ratio { font-size: 18px; opacity: 0.48; white-space: nowrap; }
-
-    /* Row 3: beans g + milk ml */
-    .s-ingredients {
-      font-size: 18px;
-      opacity: 0.55;
-      letter-spacing: 0.01em;
+    /* ── Hero CO₂: glance-readable at 1–2 m ───────────────────── */
+    .s-hero {
+      position: absolute;
+      top: 56px; left: 18px; right: 18px;
+      font-size: 140px;
+      font-weight: 900;
+      line-height: 1;
+      letter-spacing: -0.045em;
       white-space: nowrap;
+      overflow: hidden;
     }
-    .s-ing-sep { opacity: 0.35; margin: 0 6px; }
+    .s-hero .unit {
+      font-size: 0.38em;
+      font-weight: 800;
+      letter-spacing: -0.005em;
+      margin-left: 0.1em;
+    }
+
+    /* ── Context row: equivalence · beans · milk ──────────────── */
+    .s-ctx {
+      position: absolute;
+      left: 18px; right: 18px;
+      bottom: 86px;
+      font-size: 22px;
+      font-weight: 600;
+      letter-spacing: 0;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .s-ctx-sep { margin: 0 8px; }
 
     /* ── Separator ────────────────────────────────────────────── */
     .s-sep {
       position: absolute;
       left: 0; right: 0;
-      bottom: 92px;
-      height: 1px;
+      bottom: 72px;
+      height: 2px;
       background: #0a0a0a;
-      opacity: 0.18;
     }
 
-    /* ── Bottom: cumulative stats ─────────────────────────────── */
+    /* ── Aggregates: I dag · MDR · ÅR ──────────────────────────── */
     .s-bottom {
       position: absolute;
       bottom: 0; left: 0; right: 0;
-      height: 93px;
-      display: flex;
+      height: 70px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
       align-items: center;
-      justify-content: space-around;
       padding: 0 18px;
+      gap: 8px;
     }
-
-    .s-stat { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
-    .s-stat-label {
-      font-size: 15px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      opacity: 0.38;
+    .s-stat {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
       line-height: 1;
+      min-width: 0;
+    }
+    .s-stat-label {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      flex-shrink: 0;
     }
     .s-stat-value {
-      font-size: 24px;
-      font-weight: 700;
+      font-size: 28px;
+      font-weight: 900;
       letter-spacing: -0.02em;
-      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
     }
-    .s-dot { font-size: 27px; opacity: 0.18; flex-shrink: 0; }
 
-    /* ── Footer ───────────────────────────────────────────────── */
+    /* ── Footer (HTML preview only; not rendered on device) ───── */
     .meta {
       display: flex;
       align-items: center;
@@ -152,77 +174,63 @@
     .meta-dot { width: 6px; height: 6px; border-radius: 50%; background: #32d74b; flex-shrink: 0; }
     .meta-dot.error { background: #ff453a; }
 
-    /* ── Responsive ───────────────────────────────────────────── */
+    /* ── Responsive: keep 2:1 aspect, scale proportionally ─────── */
     @media (max-width: 700px) {
-      .screen        { width: 424px; height: 208px; }
-      .s-top         { top: 12px; left: 12px; right: 12px; bottom: 62px; }
-      .s-sep         { bottom: 61px; }
-      .s-bottom      { height: 62px; padding: 0 12px; }
-      .s-drink       { font-size: 24px; }
-      .s-floor       { font-size: 10px; }
-      .s-co2         { font-size: 16px; }
-      .s-ratio       { font-size: 12px; }
-      .s-ingredients { font-size: 12px; }
-      .s-stat-label  { font-size: 10px; }
-      .s-stat-value  { font-size: 16px; }
-      .s-dot         { font-size: 18px; }
+      .screen { width: 424px; height: 208px; }
+      .s-head { top: 9px; left: 12px; right: 12px; }
+      .s-drink { font-size: 21px; }
+      .s-floor { font-size: 15px; }
+      .s-hero  { top: 37px; left: 12px; right: 12px; font-size: 93px; }
+      .s-ctx   { left: 12px; right: 12px; bottom: 57px; font-size: 15px; }
+      .s-sep   { bottom: 48px; height: 1px; }
+      .s-bottom { height: 47px; padding: 0 12px; }
+      .s-stat-label { font-size: 12px; }
+      .s-stat-value { font-size: 19px; }
     }
     @media (max-width: 460px) {
-      .screen        { width: 318px; height: 156px; }
-      .s-top         { top: 9px; left: 9px; right: 9px; bottom: 46px; }
-      .s-sep         { bottom: 45px; }
-      .s-bottom      { height: 46px; padding: 0 9px; }
-      .s-drink       { font-size: 18px; }
-      .s-floor       { font-size: 8px; }
-      .s-co2         { font-size: 12px; }
-      .s-ratio       { font-size: 9px; }
-      .s-ingredients { font-size: 9px; }
-      .s-stat-label  { font-size: 8px; }
-      .s-stat-value  { font-size: 12px; }
-      .s-dot         { font-size: 13px; }
+      .screen { width: 318px; height: 156px; }
+      .s-head { top: 7px; left: 9px; right: 9px; }
+      .s-drink { font-size: 16px; }
+      .s-floor { font-size: 11px; }
+      .s-hero  { top: 28px; left: 9px; right: 9px; font-size: 70px; }
+      .s-ctx   { left: 9px; right: 9px; bottom: 42px; font-size: 11px; }
+      .s-sep   { bottom: 36px; height: 1px; }
+      .s-bottom { height: 35px; padding: 0 9px; }
+      .s-stat-label { font-size: 9px; }
+      .s-stat-value { font-size: 14px; }
     }
   </style>
 </head>
 <body>
   <div class="device">
-    <div class="device-label">LILYGO T5 · 2.13″ e-ink · 212 × 104 px @ 3×</div>
+    <div class="device-label">LILYGO T5 · 2.13″ e-ink · 212 × 104 px @ 3× · 1–2 m viewing</div>
 
     <div class="screen" id="screen">
-
-      <div class="s-top">
-        <!-- Row 1: drink name + floor -->
-        <div class="s-row">
-          <span class="s-drink" id="s-drink">—</span>
-          <span class="s-floor" id="s-floor"></span>
-        </div>
-        <!-- Row 2: CO₂ + vs black coffee -->
-        <div class="s-row">
-          <span class="s-co2"   id="s-co2">—</span>
-          <span class="s-ratio" id="s-ratio"></span>
-        </div>
-        <!-- Row 3: beans + milk -->
-        <div class="s-ingredients" id="s-ingredients"></div>
+      <div class="s-head">
+        <span class="s-drink" id="s-drink">—</span>
+        <span class="s-floor" id="s-floor"></span>
       </div>
+
+      <div class="s-hero" id="s-hero">—</div>
+
+      <div class="s-ctx" id="s-ctx"></div>
 
       <div class="s-sep"></div>
 
       <div class="s-bottom">
         <div class="s-stat">
-          <span class="s-stat-label">I dag</span>
+          <span class="s-stat-label">I&nbsp;dag</span>
           <span class="s-stat-value" id="cum-today">—</span>
         </div>
-        <div class="s-dot">·</div>
         <div class="s-stat">
-          <span class="s-stat-label">30 dage</span>
+          <span class="s-stat-label">Mdr</span>
           <span class="s-stat-value" id="cum-30d">—</span>
         </div>
-        <div class="s-dot">·</div>
         <div class="s-stat">
-          <span class="s-stat-label">365 dage</span>
+          <span class="s-stat-label">År</span>
           <span class="s-stat-value" id="cum-365d">—</span>
         </div>
       </div>
-
     </div>
 
     <div class="meta">
@@ -241,6 +249,15 @@
       return Math.round(g) + ' g';
     }
 
+    // Big digit + small unit: keeps the visual mass in the digits while
+    // "g CO₂" / "kg CO₂" still tells you what you're looking at.
+    function fmtHero(g) {
+      const s = fmtCo2(g);
+      const m = s.match(/^([\d.,]+)\s*(.+)$/);
+      if (!m) return s;
+      return m[1] + '<span class="unit">' + m[2] + ' CO₂</span>';
+    }
+
     function fmtRatio(r) {
       if (!isFinite(r) || r <= 0) return '';
       return (r >= 10 ? Math.round(r) : r.toFixed(1)) + '× sort kaffe';
@@ -248,11 +265,10 @@
 
     function fmtTime(iso) {
       return new Date(iso).toLocaleTimeString('da-DK', {
-        hour: '2-digit', minute: '2-digit', second: '2-digit'
+        hour: '2-digit', minute: '2-digit'
       });
     }
 
-    // Pass ?machine=ID through to the API so the preview matches the device config
     const machineParam = new URLSearchParams(location.search).get('machine');
     const apiUrl = '/api/epaper' + (machineParam ? '?machine=' + encodeURIComponent(machineParam) : '');
 
@@ -264,19 +280,20 @@
 
     function applyData(d) {
       const ld = d.lastDrink;
-      document.getElementById('s-drink').textContent = ld ? ld.name : '—';
-      document.getElementById('s-floor').textContent = ld?.floor ? 'sal ' + ld.floor : '';
-      document.getElementById('s-co2').textContent   = ld ? fmtCo2(ld.co2_g) + ' CO₂' : '—';
-      document.getElementById('s-ratio').textContent = ld ? fmtRatio(ld.vsBlackCoffeeRatio) : '';
 
+      document.getElementById('s-drink').textContent = ld ? ld.name : '—';
+      document.getElementById('s-floor').textContent = ld?.floor ?? '';
+      document.getElementById('s-hero').innerHTML    = ld ? fmtHero(ld.co2_g) : '—';
+
+      const parts = [];
       if (ld) {
-        const beansStr = ld.beansG > 0  ? Math.round(ld.beansG)  + ' g bønner' : '';
-        const milkStr  = ld.milkMl > 0  ? Math.round(ld.milkMl)  + ' ml mælk'  : '';
-        document.getElementById('s-ingredients').innerHTML =
-          [beansStr, milkStr].filter(Boolean).join('<span class="s-ing-sep">·</span>');
-      } else {
-        document.getElementById('s-ingredients').textContent = '';
+        const ratio = fmtRatio(ld.vsBlackCoffeeRatio);
+        if (ratio) parts.push(ratio);
+        if (ld.beansG > 0) parts.push(Math.round(ld.beansG) + ' g kaffe');
+        if (ld.milkMl > 0) parts.push(Math.round(ld.milkMl) + ' ml mælk');
       }
+      document.getElementById('s-ctx').innerHTML =
+        parts.join('<span class="s-ctx-sep">·</span>');
 
       document.getElementById('cum-today').textContent = fmtCo2(d.cumulative.today_g);
       document.getElementById('cum-30d').textContent   = fmtCo2(d.cumulative.days30_g);
@@ -289,23 +306,16 @@
         if (!res.ok) throw new Error(res.status);
         const d = await res.json();
 
-        if (d.updatedAt === lastUpdatedAt) {
-          // No new data — just update the status text, skip redraw
-          dot.className = 'meta-dot';
-          meta.textContent = 'Opdateret ' + fmtTime(d.updatedAt) + ' · ingen ændring';
-          return;
+        if (d.updatedAt !== lastUpdatedAt) {
+          screen.classList.add('refreshing');
+          await new Promise(r => setTimeout(r, 110));
+          screen.classList.remove('refreshing');
+          applyData(d);
+          lastUpdatedAt = d.updatedAt;
         }
 
-        // New data — flash screen then apply
-        screen.classList.add('refreshing');
-        await new Promise(r => setTimeout(r, 110));
-        screen.classList.remove('refreshing');
-
-        applyData(d);
-        lastUpdatedAt = d.updatedAt;
-
         dot.className = 'meta-dot';
-        meta.textContent = 'Opdateret ' + fmtTime(d.updatedAt) + ' · hvert 5. sek';
+        meta.textContent = 'Opdateret ' + fmtTime(d.updatedAt);
       } catch (e) {
         dot.className = 'meta-dot error';
         meta.textContent = 'Fejl ved hentning';
