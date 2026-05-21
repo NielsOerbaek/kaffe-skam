@@ -131,6 +131,19 @@ export class Store {
     return rows.map(r => ({ machineId: r.machine_id, productKey: r.product_key, name: r.name }));
   }
 
+  // Return the N most recent brews from a single machine (committed + pending), newest first.
+  getRecentBrewsForMachine(machineId: number, limit: number): Brew[] {
+    const pending = this.getPending(machineId);
+    const need = limit + (pending ? 1 : 0);
+    const rows = this.db.prepare(
+      `SELECT * FROM brews WHERE machine_id = ? ORDER BY machine_ts DESC, id DESC LIMIT ?`
+    ).all(machineId, need) as any[];
+    const committed = rows.map(r => this.rowToBrew(r));
+    const all: Brew[] = pending ? [pending, ...committed] : committed;
+    all.sort((a, b) => b.machineTs.localeCompare(a.machineTs));
+    return all.slice(0, limit);
+  }
+
   // Return the N most recent brews (committed + pending), newest first.
   // Pending brews count as "recent" so a brew shows up immediately even before its splash window expires.
   getRecentBrews(limit: number): Brew[] {

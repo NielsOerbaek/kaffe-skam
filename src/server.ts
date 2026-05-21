@@ -33,11 +33,13 @@ function handleRequest(req: IncomingMessage, res: ServerResponse, opts: ServerOp
   if (path === "/api/state")    return sendState(res, opts);
   if (path === "/api/timeline") return sendTimeline(res, opts, query);
   if (path === "/api/drinks")   return sendDrinks(res, opts, query);
+  if (path === "/api/epaper")   return sendEpaper(res, opts, query);
 
   if (path === "/")          return serveStatic(res, opts.publicDir, "index.html");
   if (path === "/timeline")  return serveStatic(res, opts.publicDir, "timeline.html");
   if (path === "/drinks")    return serveStatic(res, opts.publicDir, "drinks.html");
   if (path === "/metode")    return serveStatic(res, opts.publicDir, "metode.html");
+  if (path === "/device")    return serveStatic(res, opts.publicDir, "device.html");
 
   if (path.startsWith("/static/")) {
     const rel = path.slice("/static/".length);
@@ -215,6 +217,67 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
   res.end(JSON.stringify(state));
+}
+
+function sendEpaper(res: ServerResponse, opts: ServerOpts, q: URLSearchParams) {
+  const now = new Date();
+  const localDate = localDateString(now);
+
+  // Optional ?machine=<id> — pins last-drink display to one machine
+  const machineParam = q.get("machine");
+  const machineId = machineParam != null ? Number(machineParam) : null;
+
+  // Calibrated black-coffee baseline (same formula as sendState)
+  const ks = opts.config.machines.map(m => {
+    const raw = opts.store.getMeta(`beans_calibration_k_${m.id}`);
+    return raw == null ? 1.0 : Number(raw);
+  });
+  const avgK = ks.length ? ks.reduce((s, k) => s + k, 0) / ks.length : 1.0;
+  const coffeeBeans = opts.config.beansByProduct["Coffee"]
+    ?? opts.config.beansDefaultsG["COFFEE"]
+    ?? 7;
+  const baseline_g = coffeeBeans * avgK * opts.config.co2.beansFactorGPerG;
+
+  // Last brew — filtered to one machine when ?machine= is given
+  const floorByMachine = new Map(opts.config.machines.map(m => [m.id, m.floor]));
+  const recent = machineId != null && Number.isFinite(machineId)
+    ? opts.store.getRecentBrewsForMachine(machineId, 1)
+    : opts.store.getRecentBrews(1);
+
+  let lastDrink = null;
+  if (recent.length > 0) {
+    const b = recent[0]!;
+    const productName = opts.store.getProductName(b.machineId, b.productKey);
+    lastDrink = {
+      name:               productName ?? humanizeType(b.drinkType),
+      floor:              floorByMachine.get(b.machineId) ?? "?",
+      co2_g:             b.co2G,
+      beansG:            b.beansG,
+      milkMl:            b.milkMl,
+      vsBlackCoffeeRatio: baseline_g > 0 ? b.co2G / baseline_g : 1,
+    };
+  }
+
+  // Cumulative totals across ALL machines: today, rolling 30d, rolling 365d
+  const today   = opts.store.getTodayTotals(localDate);
+  const since30  = localDateString(new Date(Date.now() - 29  * 86400_000));
+  const since365 = localDateString(new Date(Date.now() - 364 * 86400_000));
+  const days30   = opts.store.getDailyTotals(since30);
+  const days365  = opts.store.getDailyTotals(since365);
+
+  res.statusCode = 200;
+  res.setHeader("Content-Type", "application/json; charset=utf-8");
+  res.setHeader("Cache-Control", "no-store");
+  res.end(JSON.stringify({
+    lastDrink,
+    cumulative: {
+      today_g:   today.co2_g,
+      days30_g:  days30.reduce((s, d) => s + d.co2_g, 0),
+      days365_g: days365.reduce((s, d) => s + d.co2_g, 0),
+    },
+    baseline_g,
+    updatedAt: now.toISOString(),
+  }));
 }
 
 function serveStatic(res: ServerResponse, publicDir: string, rel: string) {

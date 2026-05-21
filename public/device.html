@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Device preview · Kaffe og Carbon</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <style>
+    /*
+      Physical display: 212 × 104 px at ~104 dpi
+      Preview at 3×:    636 × 312 px
+      All values below are 3× the on-device pixel.
+    */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100dvh;
+      background: #1a1a1c;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      padding: 40px 24px;
+      font-family: system-ui, -apple-system, sans-serif;
+    }
+
+    .device {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 14px;
+    }
+
+    .device-label {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.28);
+      font-weight: 500;
+    }
+
+    /* ── E-paper screen: 636 × 312 px (3× physical 212 × 104) ── */
+    .screen {
+      width:  636px;
+      height: 312px;
+      background: #f3f0e6;
+      color: #0a0a0a;
+      position: relative;
+      overflow: hidden;
+      border-radius: 6px;
+      box-shadow: inset 0 0 0 2px rgba(0,0,0,0.15);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .screen.refreshing { background: #0a0a0a; }
+    .screen.refreshing > * { visibility: hidden; }
+
+    /* ── Top zone: last drink info ────────────────────────────── */
+    .s-top {
+      position: absolute;
+      top: 18px; left: 18px; right: 18px;
+      bottom: 93px;          /* leaves 93px for bottom bar */
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    /* Row 1: drink name + floor */
+    .s-row { display: flex; align-items: baseline; justify-content: space-between; gap: 9px; }
+
+    .s-drink {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+      min-width: 0;
+    }
+    .s-floor {
+      font-size: 15px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      opacity: 0.42;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    /* Row 2: CO₂ + vs-ratio */
+    .s-co2   { font-size: 24px; font-weight: 600; letter-spacing: -0.02em; }
+    .s-ratio { font-size: 18px; opacity: 0.48; white-space: nowrap; }
+
+    /* Row 3: beans g + milk ml */
+    .s-ingredients {
+      font-size: 18px;
+      opacity: 0.55;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+    .s-ing-sep { opacity: 0.35; margin: 0 6px; }
+
+    /* ── Separator ────────────────────────────────────────────── */
+    .s-sep {
+      position: absolute;
+      left: 0; right: 0;
+      bottom: 92px;
+      height: 1px;
+      background: #0a0a0a;
+      opacity: 0.18;
+    }
+
+    /* ── Bottom: cumulative stats ─────────────────────────────── */
+    .s-bottom {
+      position: absolute;
+      bottom: 0; left: 0; right: 0;
+      height: 93px;
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      padding: 0 18px;
+    }
+
+    .s-stat { display: flex; flex-direction: column; align-items: center; gap: 4px; flex: 1; }
+    .s-stat-label {
+      font-size: 15px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.38;
+      line-height: 1;
+    }
+    .s-stat-value {
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    .s-dot { font-size: 27px; opacity: 0.18; flex-shrink: 0; }
+
+    /* ── Footer ───────────────────────────────────────────────── */
+    .meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      color: rgba(255,255,255,0.28);
+    }
+    .meta-dot { width: 6px; height: 6px; border-radius: 50%; background: #32d74b; flex-shrink: 0; }
+    .meta-dot.error { background: #ff453a; }
+
+    /* ── Responsive ───────────────────────────────────────────── */
+    @media (max-width: 700px) {
+      .screen        { width: 424px; height: 208px; }
+      .s-top         { top: 12px; left: 12px; right: 12px; bottom: 62px; }
+      .s-sep         { bottom: 61px; }
+      .s-bottom      { height: 62px; padding: 0 12px; }
+      .s-drink       { font-size: 24px; }
+      .s-floor       { font-size: 10px; }
+      .s-co2         { font-size: 16px; }
+      .s-ratio       { font-size: 12px; }
+      .s-ingredients { font-size: 12px; }
+      .s-stat-label  { font-size: 10px; }
+      .s-stat-value  { font-size: 16px; }
+      .s-dot         { font-size: 18px; }
+    }
+    @media (max-width: 460px) {
+      .screen        { width: 318px; height: 156px; }
+      .s-top         { top: 9px; left: 9px; right: 9px; bottom: 46px; }
+      .s-sep         { bottom: 45px; }
+      .s-bottom      { height: 46px; padding: 0 9px; }
+      .s-drink       { font-size: 18px; }
+      .s-floor       { font-size: 8px; }
+      .s-co2         { font-size: 12px; }
+      .s-ratio       { font-size: 9px; }
+      .s-ingredients { font-size: 9px; }
+      .s-stat-label  { font-size: 8px; }
+      .s-stat-value  { font-size: 12px; }
+      .s-dot         { font-size: 13px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="device">
+    <div class="device-label">LILYGO T5 · 2.13″ e-ink · 212 × 104 px @ 3×</div>
+
+    <div class="screen" id="screen">
+
+      <div class="s-top">
+        <!-- Row 1: drink name + floor -->
+        <div class="s-row">
+          <span class="s-drink" id="s-drink">—</span>
+          <span class="s-floor" id="s-floor"></span>
+        </div>
+        <!-- Row 2: CO₂ + vs black coffee -->
+        <div class="s-row">
+          <span class="s-co2"   id="s-co2">—</span>
+          <span class="s-ratio" id="s-ratio"></span>
+        </div>
+        <!-- Row 3: beans + milk -->
+        <div class="s-ingredients" id="s-ingredients"></div>
+      </div>
+
+      <div class="s-sep"></div>
+
+      <div class="s-bottom">
+        <div class="s-stat">
+          <span class="s-stat-label">I dag</span>
+          <span class="s-stat-value" id="cum-today">—</span>
+        </div>
+        <div class="s-dot">·</div>
+        <div class="s-stat">
+          <span class="s-stat-label">30 dage</span>
+          <span class="s-stat-value" id="cum-30d">—</span>
+        </div>
+        <div class="s-dot">·</div>
+        <div class="s-stat">
+          <span class="s-stat-label">365 dage</span>
+          <span class="s-stat-value" id="cum-365d">—</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="meta">
+      <div class="meta-dot" id="meta-dot"></div>
+      <span id="meta-text">Henter…</span>
+    </div>
+  </div>
+
+  <script>
+    function fmtCo2(g) {
+      if (g >= 1_000_000) {
+        const t = g / 1_000_000;
+        return (t >= 10 ? t.toFixed(1) : t.toFixed(2)) + ' t';
+      }
+      if (g >= 1_000) return (g / 1_000).toFixed(1) + ' kg';
+      return Math.round(g) + ' g';
+    }
+
+    function fmtRatio(r) {
+      if (!isFinite(r) || r <= 0) return '';
+      return (r >= 10 ? Math.round(r) : r.toFixed(1)) + '× sort kaffe';
+    }
+
+    function fmtTime(iso) {
+      return new Date(iso).toLocaleTimeString('da-DK', {
+        hour: '2-digit', minute: '2-digit', second: '2-digit'
+      });
+    }
+
+    // Pass ?machine=ID through to the API so the preview matches the device config
+    const machineParam = new URLSearchParams(location.search).get('machine');
+    const apiUrl = '/api/epaper' + (machineParam ? '?machine=' + encodeURIComponent(machineParam) : '');
+
+    const screen = document.getElementById('screen');
+    const dot    = document.getElementById('meta-dot');
+    const meta   = document.getElementById('meta-text');
+
+    let lastUpdatedAt = null;
+
+    function applyData(d) {
+      const ld = d.lastDrink;
+      document.getElementById('s-drink').textContent = ld ? ld.name : '—';
+      document.getElementById('s-floor').textContent = ld?.floor ? 'sal ' + ld.floor : '';
+      document.getElementById('s-co2').textContent   = ld ? fmtCo2(ld.co2_g) + ' CO₂' : '—';
+      document.getElementById('s-ratio').textContent = ld ? fmtRatio(ld.vsBlackCoffeeRatio) : '';
+
+      if (ld) {
+        const beansStr = ld.beansG > 0  ? Math.round(ld.beansG)  + ' g bønner' : '';
+        const milkStr  = ld.milkMl > 0  ? Math.round(ld.milkMl)  + ' ml mælk'  : '';
+        document.getElementById('s-ingredients').innerHTML =
+          [beansStr, milkStr].filter(Boolean).join('<span class="s-ing-sep">·</span>');
+      } else {
+        document.getElementById('s-ingredients').textContent = '';
+      }
+
+      document.getElementById('cum-today').textContent = fmtCo2(d.cumulative.today_g);
+      document.getElementById('cum-30d').textContent   = fmtCo2(d.cumulative.days30_g);
+      document.getElementById('cum-365d').textContent  = fmtCo2(d.cumulative.days365_g);
+    }
+
+    async function poll() {
+      try {
+        const res = await fetch(apiUrl, { cache: 'no-store' });
+        if (!res.ok) throw new Error(res.status);
+        const d = await res.json();
+
+        if (d.updatedAt === lastUpdatedAt) {
+          // No new data — just update the status text, skip redraw
+          dot.className = 'meta-dot';
+          meta.textContent = 'Opdateret ' + fmtTime(d.updatedAt) + ' · ingen ændring';
+          return;
+        }
+
+        // New data — flash screen then apply
+        screen.classList.add('refreshing');
+        await new Promise(r => setTimeout(r, 110));
+        screen.classList.remove('refreshing');
+
+        applyData(d);
+        lastUpdatedAt = d.updatedAt;
+
+        dot.className = 'meta-dot';
+        meta.textContent = 'Opdateret ' + fmtTime(d.updatedAt) + ' · hvert 5. sek';
+      } catch (e) {
+        dot.className = 'meta-dot error';
+        meta.textContent = 'Fejl ved hentning';
+      }
+    }
+
+    poll();
+    setInterval(poll, 5000);
+  </script>
+</body>
+</html>
