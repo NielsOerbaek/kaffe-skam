@@ -98,4 +98,27 @@ export class TokenManager {
     this.tokens = next;
     this.persist(next);
   }
+
+  async checkAndRefresh(): Promise<void> {
+    if (!this.tokens) return;
+    if (this.now() < this.tokens.expiresAt - this.refreshMarginMs) return;
+    try {
+      await this.refreshOnce();
+    } catch (e) {
+      console.error(
+        `[auth] proactive token refresh failed: ${e instanceof Error ? e.message : String(e)}. ` +
+        `If the refresh token has expired, re-run the bootstrap (api-token.php generator).`,
+      );
+    }
+  }
+
+  start(): void {
+    if (this.timer) return;
+    this.timer = setInterval(() => { void this.checkAndRefresh(); }, this.checkIntervalMs);
+    if (typeof this.timer.unref === "function") this.timer.unref();
+  }
+
+  stop(): void {
+    if (this.timer) { clearInterval(this.timer); this.timer = null; }
+  }
 }

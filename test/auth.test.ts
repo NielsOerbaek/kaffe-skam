@@ -94,4 +94,50 @@ describe("TokenManager", () => {
     tm.load();
     await expect(tm.refreshOnce()).rejects.toThrow(/refresh failed/i);
   });
+
+  it("checkAndRefresh refreshes when within the margin of expiry", async () => {
+    seed({ accessToken: "acc-1", refreshToken: "ref-1", expiresAt: 10_000 });
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify({
+      token_type: "Bearer", expires_in: 100, access_token: "acc-2", refresh_token: "ref-2",
+    }), { status: 200 }));
+    const tm = new TokenManager({
+      ...baseOpts(), fetchFn: fetchFn as unknown as typeof fetch, now: () => 9_000, refreshMarginMs: 2_000,
+    });
+    tm.load();
+
+    await tm.checkAndRefresh();
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+    expect(tm.getAccessToken()).toBe("acc-2");
+  });
+
+  it("checkAndRefresh does nothing when the token is still fresh", async () => {
+    seed({ accessToken: "acc-1", refreshToken: "ref-1", expiresAt: 1_000_000 });
+    const fetchFn = vi.fn(async () => new Response("{}", { status: 200 }));
+    const tm = new TokenManager({
+      ...baseOpts(), fetchFn: fetchFn as unknown as typeof fetch, now: () => 0, refreshMarginMs: 1_000,
+    });
+    tm.load();
+
+    await tm.checkAndRefresh();
+
+    expect(fetchFn).not.toHaveBeenCalled();
+    expect(tm.getAccessToken()).toBe("acc-1");
+  });
+
+  it("checkAndRefresh logs a bootstrap hint and does not throw when refresh fails", async () => {
+    seed({ accessToken: "acc-1", refreshToken: "ref-1", expiresAt: 10_000 });
+    const fetchFn = vi.fn(async () => new Response("dead", { status: 401 }));
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const tm = new TokenManager({
+      ...baseOpts(), fetchFn: fetchFn as unknown as typeof fetch, now: () => 9_999, refreshMarginMs: 2_000,
+    });
+    tm.load();
+
+    await expect(tm.checkAndRefresh()).resolves.toBeUndefined();
+
+    const logged = errSpy.mock.calls.map((c) => String(c[0])).join(" ");
+    expect(logged).toMatch(/bootstrap/i);
+    errSpy.mockRestore();
+  });
 });
