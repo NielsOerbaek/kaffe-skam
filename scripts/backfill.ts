@@ -13,6 +13,7 @@
 import { loadConfig } from "../src/config.ts";
 import { Store } from "../src/store.ts";
 import { ApiRateLimitError, ApiError } from "../src/api.ts";
+import { TokenManager } from "../src/auth.ts";
 import { mergeStep } from "../src/merge.ts";
 import { defaultBeansG, applyCalibration } from "../src/beans.ts";
 import { co2ForBrew } from "../src/co2.ts";
@@ -58,6 +59,7 @@ function buildPending(ph: ProductHistory, cfg: Config, machineId: number): Pendi
 // breaks pagination when seeding the loop.
 async function fetchBrewsInRange(
   cfg: Config,
+  auth: TokenManager,
   machineId: number,
   t1: string,
   t2: string,
@@ -77,7 +79,7 @@ async function fetchBrewsInRange(
     let attempts = 0;
     let chunk: ProductHistory[] | null = null;
     while (attempts < 6) {
-      const r = await fetch(url, { headers: { Authorization: `Bearer ${cfg.token}` } });
+      const r = await fetch(url, { headers: { Authorization: `Bearer ${auth.getAccessToken()}` } });
       if (r.status === 429) {
         attempts++;
         const wait = 1000 * Math.pow(2, attempts);
@@ -111,6 +113,13 @@ async function main() {
   const cfg = loadConfig(ROOT);
   mkdirSync(join(ROOT, "data"), { recursive: true });
   const store = new Store(join(ROOT, "data", "kaffe.sqlite"));
+  const tokenManager = new TokenManager({
+    storePath: join(ROOT, "data", "eversys-tokens.json"),
+    authUrl: cfg.authUrl,
+    clientId: cfg.clientId,
+    clientSecret: cfg.clientSecret,
+  });
+  tokenManager.load();
 
   const now = new Date();
   const since = new Date(now.getTime() - days * 86400_000);
@@ -122,7 +131,7 @@ async function main() {
   let totalCommitted = 0;
   for (const m of cfg.machines) {
     console.log(`══ machine ${m.id} (${m.floor}) ══`);
-    const brews = await fetchBrewsInRange(cfg, m.id, t1, t2);
+    const brews = await fetchBrewsInRange(cfg, tokenManager, m.id, t1, t2);
     brews.sort((a, b) => a.machineTimestamp.localeCompare(b.machineTimestamp));
     console.log(`  fetched ${brews.length} brews`);
 
