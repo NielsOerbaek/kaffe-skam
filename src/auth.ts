@@ -89,14 +89,35 @@ export class TokenManager {
       }),
     });
     if (!r.ok) throw new Error(`token refresh failed: HTTP ${r.status}`);
-    const data = (await r.json()) as RefreshResponse;
+    const data = (await r.json()) as Partial<RefreshResponse>;
+    if (
+      typeof data.access_token !== "string" ||
+      typeof data.refresh_token !== "string" ||
+      typeof data.expires_in !== "number" ||
+      !Number.isFinite(data.expires_in)
+    ) {
+      throw new Error("token refresh returned a malformed response");
+    }
     const next: StoredTokens = {
       accessToken: data.access_token,
       refreshToken: data.refresh_token,
       expiresAt: this.now() + data.expires_in * 1000,
     };
+    // The server has now rotated the refresh token: the old one is dead and
+    // `next` is the only valid pair. Update memory first so the live process
+    // keeps working, then persist. If persistence fails the token survives only
+    // in memory — log loudly and distinctly, because a restart would read the
+    // stale, now-dead pair from disk and silently break the refresh chain.
     this.tokens = next;
-    this.persist(next);
+    try {
+      this.persist(next);
+    } catch (e) {
+      console.error(
+        `[auth] CRITICAL: token refreshed but could NOT be persisted to ${this.opts.storePath}: ` +
+        `${e instanceof Error ? e.message : String(e)}. The new token works until the next restart, ` +
+        `after which you must re-run the bootstrap (api-token.php generator).`,
+      );
+    }
   }
 
   async checkAndRefresh(): Promise<void> {

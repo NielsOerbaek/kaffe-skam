@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync, readFileSync, chmodSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { TokenManager } from "../src/auth.ts";
@@ -139,5 +139,38 @@ describe("TokenManager", () => {
     const logged = errSpy.mock.calls.map((c) => String(c[0])).join(" ");
     expect(logged).toMatch(/bootstrap/i);
     errSpy.mockRestore();
+  });
+
+  it("refreshOnce rejects on a malformed 200 response and leaves the stored pair intact", async () => {
+    seed({ accessToken: "acc-1", refreshToken: "ref-1", expiresAt: 1000 });
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ token_type: "Bearer" }), { status: 200 }));
+    const tm = new TokenManager({ ...baseOpts(), fetchFn: fetchFn as unknown as typeof fetch });
+    tm.load();
+
+    await expect(tm.refreshOnce()).rejects.toThrow(/malformed/i);
+    expect(tm.getAccessToken()).toBe("acc-1");
+    const onDisk = JSON.parse(readFileSync(storePath, "utf8"));
+    expect(onDisk.accessToken).toBe("acc-1");
+    expect(onDisk.refreshToken).toBe("ref-1");
+  });
+
+  it("keeps the refreshed token in memory and logs CRITICAL when persistence fails", async () => {
+    seed({ accessToken: "acc-1", refreshToken: "ref-1", expiresAt: 1000 });
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify({
+      token_type: "Bearer", expires_in: 604800, access_token: "acc-2", refresh_token: "ref-2",
+    }), { status: 200 }));
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const tm = new TokenManager({ ...baseOpts(), fetchFn: fetchFn as unknown as typeof fetch, now: () => 0 });
+    tm.load();
+    chmodSync(dir, 0o500); // make the directory read-only so the atomic write fails
+    try {
+      await tm.refreshOnce();
+      expect(tm.getAccessToken()).toBe("acc-2"); // new token usable in memory
+      const logged = errSpy.mock.calls.map((c) => String(c[0])).join(" ");
+      expect(logged).toMatch(/CRITICAL/i);
+    } finally {
+      chmodSync(dir, 0o700); // restore so afterEach cleanup can remove it
+      errSpy.mockRestore();
+    }
   });
 });
