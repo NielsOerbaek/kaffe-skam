@@ -3,6 +3,7 @@ import { Store } from "./store.ts";
 import { EversysClient, ApiError, ApiRateLimitError } from "./api.ts";
 import { Poller } from "./poller.ts";
 import { createServer } from "./server.ts";
+import { TokenManager } from "./auth.ts";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { mkdirSync } from "node:fs";
@@ -14,11 +15,21 @@ async function main() {
   mkdirSync(join(ROOT, "data"), { recursive: true });
 
   const store = new Store(join(ROOT, "data", "kaffe.sqlite"));
+
+  const tokenManager = new TokenManager({
+    storePath: join(ROOT, "data", "eversys-tokens.json"),
+    authUrl: cfg.authUrl,
+    clientId: cfg.clientId,
+    clientSecret: cfg.clientSecret,
+  });
+  tokenManager.load();   // throws a bootstrap hint if the store is missing
+  tokenManager.start();
+
   const machines = cfg.machines.map(m => ({
     machineId: m.id,
     floor: m.floor,
     client: new EversysClient({
-      baseUrl: cfg.api.baseUrl, token: cfg.token, machineId: m.id,
+      baseUrl: cfg.api.baseUrl, auth: tokenManager, machineId: m.id,
     }),
   }));
   const poller = new Poller({ machines, store, config: cfg });
@@ -65,8 +76,8 @@ async function main() {
     console.log(`kaffe-skam listening on http://0.0.0.0:${cfg.server.port}`);
   });
 
-  process.on("SIGTERM", () => { server.close(); store.close(); process.exit(0); });
-  process.on("SIGINT",  () => { server.close(); store.close(); process.exit(0); });
+  process.on("SIGTERM", () => { tokenManager.stop(); server.close(); store.close(); process.exit(0); });
+  process.on("SIGINT",  () => { tokenManager.stop(); server.close(); store.close(); process.exit(0); });
 }
 
 main().catch(e => {
