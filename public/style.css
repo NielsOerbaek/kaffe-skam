@@ -798,7 +798,8 @@ body.page-tv::after { display: none; }
   display: flex;
   flex-direction: column;
   padding: 2.6vh 6vw 2vh;
-  gap: 1.2vh;
+  /* Generous gap between sections — whitespace does the grouping, not lines. */
+  gap: 3vh;
 }
 
 /* ── Title ── */
@@ -807,7 +808,7 @@ body.page-tv::after { display: none; }
   align-items: baseline;
   justify-content: space-between;
   gap: 2vw;
-  padding-bottom: 1.4vh;
+  padding-bottom: 2.4vh;
   border-bottom: 1px solid var(--hairline);
 }
 .page-tv .tv-head-main {
@@ -824,9 +825,8 @@ body.page-tv::after { display: none; }
 }
 .page-tv .tv-head-loc:empty { display: none; }
 
-/* ── Sections stack with hairline separators ── */
+/* ── Sections: separated by the .tv gap (whitespace), not lines ── */
 .page-tv .tv-sec { display: flex; flex-direction: column; gap: 0.5vh; min-width: 0; }
-.page-tv .tv-sec + .tv-sec { padding-top: 1.4vh; border-top: 1px solid var(--hairline); }
 
 .page-tv .label {
   font-size: 1.7vh;
@@ -924,10 +924,10 @@ body.page-tv::after { display: none; }
 .page-tv .previous-list .pb-co2 { text-align: right; white-space: nowrap; font-feature-settings: "tnum" 1, "lnum" 1; }
 .page-tv .previous-list li.empty { grid-template-columns: 1fr; color: var(--muted-dim); font-style: italic; font-size: 1.7vh; }
 
-/* ── Caveat footnote (pinned to the bottom) ── */
+/* ── Caveat footnote: one kept line, with balanced padding above the text ── */
 .page-tv .tv-foot {
   margin-top: auto;
-  padding-top: 1.4vh;
+  padding-top: 2.4vh;
   border-top: 1px solid var(--hairline);
   font-size: 1.4vh;
   line-height: 1.45;
