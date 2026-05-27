@@ -71,11 +71,12 @@ describe("EversysClient", () => {
     await expect(client.fetchBrewsAfter(0, 1)).rejects.toMatchObject({ name: "ApiError", status: 500 });
   });
 
-  it("on 401 refreshes once and retries the request", async () => {
-    const refreshOnce = vi.fn(async () => {});
-    const auth: AuthProvider = { getAccessToken: () => "tok", refreshOnce };
+  it("on 401 refreshes once and retries with the new token", async () => {
+    let token = "tok-old";
+    const refreshOnce = vi.fn(async () => { token = "tok-new"; });
+    const auth: AuthProvider = { getAccessToken: () => token, refreshOnce };
     let call = 0;
-    const fetchMock = vi.fn(async () => {
+    const fetchMock = vi.fn<FetchArgs, Promise<Response>>(async () => {
       call++;
       return call === 1 ? mkResponse({ error: "expired" }, 401) : mkResponse(countersFixture);
     });
@@ -85,15 +86,19 @@ describe("EversysClient", () => {
 
     expect(refreshOnce).toHaveBeenCalledTimes(1);
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect((fetchMock.mock.calls[0]![1] as any).headers.Authorization).toBe("Bearer tok-old");
+    expect((fetchMock.mock.calls[1]![1] as any).headers.Authorization).toBe("Bearer tok-new");
     expect(c.beans.totalQuantity).toBeCloseTo(12.345);
   });
 
   it("throws ApiError(401) when a second 401 follows the refresh", async () => {
-    const auth: AuthProvider = { getAccessToken: () => "tok", refreshOnce: vi.fn(async () => {}) };
+    const refreshOnce = vi.fn(async () => {});
+    const auth: AuthProvider = { getAccessToken: () => "tok", refreshOnce };
     const fetchMock = mkFetch(() => mkResponse({ error: "expired" }, 401));
     const client = new EversysClient({ baseUrl: "https://api.x", auth, machineId: 123, fetchFn: fetchMock as unknown as typeof fetch });
 
     await expect(client.fetchCounters()).rejects.toMatchObject({ name: "ApiError", status: 401 });
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(refreshOnce).toHaveBeenCalledTimes(1);
   });
 });
