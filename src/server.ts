@@ -40,6 +40,7 @@ function handleRequest(req: IncomingMessage, res: ServerResponse, opts: ServerOp
   if (path === "/drinks")    return serveStatic(res, opts.publicDir, "drinks.html");
   if (path === "/metode")    return serveStatic(res, opts.publicDir, "metode.html");
   if (path === "/device")    return serveStatic(res, opts.publicDir, "device.html");
+  if (path === "/tv")        return serveStatic(res, opts.publicDir, "tv.html");
 
   if (path.startsWith("/static/")) {
     const rel = path.slice("/static/".length);

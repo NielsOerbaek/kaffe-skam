@@ -767,3 +767,160 @@ body::after {
     font-size: clamp(11px, 2.8vw, 13px);
   }
 }
+
+/* ══════════════════════════════════════════════════════════════════
+   Portrait TV slideshow display (/tv)
+   Single tall column, non-interactive, read from across a room.
+   Reuses the shared app.js (same element IDs) + the design tokens.
+   Every rule is scoped under body.page-tv so it cannot affect / or the
+   sub-pages; the .page-tv prefix also out-specifies the phone-portrait
+   media query that a portrait TV would otherwise match.
+   ══════════════════════════════════════════════════════════════════ */
+body.page-tv { height: 100%; overflow: hidden; }
+/* No frosted top-chrome bar and no status chips on the slide. */
+body.page-tv::after { display: none; }
+.page-tv .status { display: none; }
+
+.page-tv .tv {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 2.6vh 6vw 2vh;
+  gap: 1.2vh;
+}
+
+/* ── Title ── */
+.page-tv .tv-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2vw;
+  padding-bottom: 1.4vh;
+  border-bottom: 1px solid var(--hairline);
+}
+.page-tv .tv-head-main {
+  font-size: 2.4vh;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+}
+.page-tv .tv-head-loc {
+  font-size: 1.6vh;
+  font-weight: 500;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.page-tv .tv-head-loc:empty { display: none; }
+
+/* ── Sections stack with hairline separators ── */
+.page-tv .tv-sec { display: flex; flex-direction: column; gap: 0.5vh; min-width: 0; }
+.page-tv .tv-sec + .tv-sec { padding-top: 1.4vh; border-top: 1px solid var(--hairline); }
+
+.page-tv .label {
+  font-size: 1.7vh;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+/* ── Today hero ── */
+.page-tv .hero {
+  font-size: clamp(64px, 8vh, 170px);
+  font-weight: 200;
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  color: var(--fg);
+  white-space: nowrap;
+  margin: 0.3vh 0 0.1vh;
+  font-feature-settings: "tnum" 1, "lnum" 1, "ss01";
+}
+.page-tv .sub { font-size: 2.3vh; color: var(--fg); font-weight: 300; letter-spacing: 0.01em; }
+.page-tv .sub-faint { font-size: 1.9vh; color: var(--muted); font-weight: 300; }
+.page-tv .equiv { transition: opacity 600ms ease; }
+.page-tv .equiv.fading { opacity: 0; }
+
+/* ── Month ── */
+.page-tv .month-header {
+  font-size: 1.9vh;
+  font-weight: 500;
+  letter-spacing: 0.2em;
+  color: var(--fg);
+  padding-bottom: 1vh;
+  border-bottom: 1px solid var(--hairline);
+  margin-bottom: 1vh;
+}
+.page-tv .month-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6vw; }
+.page-tv .month-stats > div { display: flex; flex-direction: column; gap: 0.5vh; }
+.page-tv .month-stats .n {
+  font-size: clamp(40px, 5vh, 100px);
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  line-height: 0.95;
+  color: var(--fg);
+  font-feature-settings: "tnum" 1, "lnum" 1;
+}
+
+/* ── Latest brew ── */
+.page-tv .drink-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2vw; margin-top: 0.2vh; }
+.page-tv .drink-name { font-size: clamp(32px, 4.5vh, 84px); font-weight: 300; letter-spacing: -0.025em; line-height: 1; }
+.page-tv .drink-floor {
+  font-size: 1.7vh;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 500;
+}
+.page-tv .drink-floor:empty { display: none; }
+.page-tv .composition { font-size: 2vh; color: var(--muted); font-weight: 300; letter-spacing: 0.02em; margin-top: 0.2vh; }
+.page-tv .brew-co2 {
+  font-size: clamp(60px, 7vh, 150px);
+  font-weight: 200;
+  line-height: 0.92;
+  letter-spacing: -0.045em;
+  color: var(--fg);
+  white-space: nowrap;
+  margin-top: 0.6vh;
+  font-feature-settings: "tnum" 1, "lnum" 1, "ss01";
+}
+.page-tv .delta-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.8vw; margin-top: 0.6vh; }
+.page-tv .delta-inline { font-size: clamp(20px, 2.8vh, 38px); font-weight: 400; letter-spacing: -0.005em; color: var(--fg); }
+.page-tv .delta-inline.up { color: var(--up); }
+.page-tv .delta-inline.down { color: var(--down); }
+.page-tv .vs { font-size: clamp(20px, 2.8vh, 38px); color: var(--muted); font-weight: 300; letter-spacing: -0.005em; }
+
+/* ── Earlier brews (cap at 3 rows on the slide) ── */
+.page-tv .previous-list { list-style: none; margin: 0.4vh 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.7vh; }
+.page-tv .previous-list li {
+  display: grid;
+  grid-template-columns: auto auto 1fr auto;
+  align-items: baseline;
+  gap: 2.4vw;
+  font-size: 2vh;
+  color: var(--fg);
+  font-weight: 300;
+}
+.page-tv .previous-list li:nth-child(n+4) { display: none; }
+.page-tv .previous-list .pb-floor {
+  color: var(--muted);
+  font-size: 1.4vh;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.page-tv .previous-list .pb-time { display: block; color: var(--muted); font-size: 1.6vh; font-feature-settings: "tnum" 1, "lnum" 1; }
+.page-tv .previous-list .pb-drink { letter-spacing: -0.01em; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.page-tv .previous-list .pb-co2 { text-align: right; white-space: nowrap; font-feature-settings: "tnum" 1, "lnum" 1; }
+.page-tv .previous-list li.empty { grid-template-columns: 1fr; color: var(--muted-dim); font-style: italic; font-size: 1.7vh; }
+
+/* ── Caveat footnote (pinned to the bottom) ── */
+.page-tv .tv-foot {
+  margin-top: auto;
+  padding-top: 1.4vh;
+  border-top: 1px solid var(--hairline);
+  font-size: 1.4vh;
+  line-height: 1.45;
+  letter-spacing: 0.04em;
+  color: var(--muted-dim);
+}

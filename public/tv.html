@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Kaffe og Carbon · skærm</title>
+  <link rel="icon" type="image/svg+xml" href="/static/favicon.svg">
+  <link rel="preconnect" href="https://api.fontshare.com">
+  <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=general-sans@200,300,400,500&f[]=cabinet-grotesk@300,400&display=swap">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body class="page-tv">
+  <main class="tv" id="root">
+    <header class="tv-head">
+      <span class="tv-head-main">Kaffe og Carbon</span>
+      <span class="tv-head-loc" id="brand">&nbsp;</span>
+    </header>
+
+    <!-- Today's CO₂ — the headline -->
+    <section class="tv-sec tv-today">
+      <div class="label">Dagens CO₂eq</div>
+      <div class="hero" id="today-co2">—</div>
+      <div class="sub" id="today-cups-line">&nbsp;</div>
+      <div class="sub-faint equiv" id="today-equiv">&nbsp;</div>
+    </section>
+
+    <!-- Month to date -->
+    <section class="tv-sec tv-month">
+      <div class="label month-header" id="month-header">—</div>
+      <div class="month-stats">
+        <div>
+          <div class="label">Antal kopper</div>
+          <div class="n" id="month-cups">—</div>
+        </div>
+        <div>
+          <div class="label">CO₂ udledt</div>
+          <div class="n" id="month-co2">—</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Latest brew -->
+    <section class="tv-sec tv-brew">
+      <div class="label" id="last-label">Seneste bryg</div>
+      <div class="drink-line">
+        <span class="drink-name" id="drink-name">—</span>
+        <span class="drink-floor" id="drink-floor"></span>
+      </div>
+      <div class="composition" id="composition">&nbsp;</div>
+      <div class="brew-co2" id="brew-co2">—</div>
+      <div class="delta-line">
+        <span class="delta-inline" id="delta">—</span>
+        <span class="vs" id="vs">&nbsp;</span>
+      </div>
+    </section>
+
+    <!-- Earlier brews -->
+    <section class="tv-sec tv-previous">
+      <div class="label">Tidligere</div>
+      <ul class="previous-list" id="previous-list"></ul>
+    </section>
+
+    <footer class="tv-foot">
+      Tallene dækker kun kaffebønner og komælk &nbsp;·&nbsp; maskinerne understøtter kun komælk &nbsp;·&nbsp; elektricitet, vand og emballage er ikke regnet med
+    </footer>
+  </main>
+
+  <!-- Present only so the shared app.js can write to them; not shown on the slide. -->
+  <div class="status" aria-hidden="true">
+    <span class="chip" id="chip-status">Live</span>
+    <span class="chip alt" id="chip-time">—</span>
+  </div>
+  <div class="stale-badge" id="stale-badge" hidden>signal mistet</div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
