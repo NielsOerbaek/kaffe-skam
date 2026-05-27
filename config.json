@@ -53,6 +53,9 @@
 
   "zeroMilkProducts": [],
 
+  "_comment_splash": "Product names that count as a milk 'splash' merged into the preceding brew. Only the actual machine Splash buttons — standalone milk drinks (Milk for Choco, Everfoam) must NOT be here or they get swallowed into whatever came before them.",
+  "splashProducts": ["Splash Cold milk", "Splash warm milk"],
+
   "productNameOverrides": {
     "61": "Hot Water"
   },

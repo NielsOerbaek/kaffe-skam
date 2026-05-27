@@ -13,6 +13,7 @@ export interface Config {
   milkUnitMl: number;                            // ml per unit of API's milk.consumption (calibrated ≈ 12.5)
   milkByProduct: Record<string, number>;        // by machine button name; overrides the multiplier when the API value isn't trusted
   zeroMilkProducts: string[];                   // legacy list — entries here force milkMl=0 if no milkByProduct match
+  splashProducts: string[];                     // product names that count as a milk "splash" to merge into the preceding brew
   productNameOverrides: Record<string, string>; // keyId (as string) → human name; for slots the API can't name
   calibration: { minBrewsBetweenCalibrations: number; maxScaleDelta: number };
   polling: {
@@ -122,6 +123,7 @@ export function loadConfig(dir: string): Config {
   const beansByProduct = (raw && typeof raw === "object" && (raw as any).beansByProduct) || {};
   const milkByProduct = (raw && typeof raw === "object" && (raw as any).milkByProduct) || {};
   const zeroMilkProducts = Array.isArray((raw as any).zeroMilkProducts) ? (raw as any).zeroMilkProducts : [];
+  const splashProducts = Array.isArray((raw as any).splashProducts) ? (raw as any).splashProducts : [];
   const productNameOverrides = (raw && typeof raw === "object" && (raw as any).productNameOverrides) || {};
   const milkUnitMl = typeof (raw as any).milkUnitMl === "number" ? (raw as any).milkUnitMl : 12.5;
 
@@ -131,6 +133,7 @@ export function loadConfig(dir: string): Config {
     milkByProduct,
     milkUnitMl,
     zeroMilkProducts,
+    splashProducts,
     productNameOverrides,
     machines,
     clientId,

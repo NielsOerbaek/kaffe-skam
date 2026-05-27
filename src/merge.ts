@@ -20,11 +20,16 @@ export interface MergeStepResult {
 }
 
 export interface MergeDeps {
-  toPending: (ph: ProductHistory, splashWindowMs: number) => PendingBrew;
+  toPending?: (ph: ProductHistory, splashWindowMs: number) => PendingBrew;
   // Optional: how to fold a splash into the existing pending brew. The caller
   // (poller) provides one that applies the milk-unit multiplier and re-computes
   // CO₂. Default is a naive add (used by tests).
   applySplash?: (pending: PendingBrew, splash: ProductHistory) => PendingBrew;
+  // Decide whether an incoming brew is a milk "splash" to merge into the
+  // preceding brew. Default: by drink-type (MILK/MILK_FOAM/HOT_WATER_WITH_MILK).
+  // Production injects a product-name-aware predicate so standalone milk drinks
+  // (e.g. "Milk for Choco") are NOT swallowed into the previous brew.
+  isSplash?: (ph: ProductHistory) => boolean;
 }
 
 // Default raw add — used by tests; production injects an applySplash that
@@ -34,6 +39,10 @@ const defaultApplySplash = (pending: PendingBrew, splash: ProductHistory): Pendi
   milkMl: pending.milkMl + (splash.milk?.consumption ?? 0),
   splashIds: [...pending.splashIds, splash.id],
 });
+
+// Default splash test — by drink-type only. Production overrides this with a
+// product-name-aware predicate (see Poller).
+const defaultIsSplash = (ph: ProductHistory): boolean => SPLASH_TYPES.has(ph.type);
 
 // Default builder used when callers don't inject `toPending`. The result has
 // `machineId = 0` and zeroed beansG/co2G — the poller always overrides this
@@ -63,13 +72,15 @@ export function mergeStep(
   incoming: ProductHistory,
   pending: PendingBrew | null,
   splashWindowMs: number,
-  deps: MergeDeps = { toPending: defaultToPending },
+  deps: MergeDeps = {},
 ): MergeStepResult {
-  const isSplash = SPLASH_TYPES.has(incoming.type);
+  const toPending = deps.toPending ?? defaultToPending;
+  const applySplash = deps.applySplash ?? defaultApplySplash;
+  const isSplash = (deps.isSplash ?? defaultIsSplash)(incoming);
   const incomingMs = new Date(incoming.machineTimestamp).getTime();
 
   if (pending == null) {
-    return { commit: null, newPending: deps.toPending(incoming, splashWindowMs), mergedSplash: false };
+    return { commit: null, newPending: toPending(incoming, splashWindowMs), mergedSplash: false };
   }
 
   const expiresMs = new Date(pending.expiresAt).getTime();
@@ -77,7 +88,7 @@ export function mergeStep(
 
   if (isSplash && withinWindow) {
     const newExpires = toLocalISOString(new Date(incomingMs + splashWindowMs));
-    const applied = (deps.applySplash ?? defaultApplySplash)(pending, incoming);
+    const applied = applySplash(pending, incoming);
     return {
       commit: null,
       newPending: { ...applied, expiresAt: newExpires },
@@ -87,7 +98,7 @@ export function mergeStep(
 
   return {
     commit: pending,
-    newPending: deps.toPending(incoming, splashWindowMs),
+    newPending: toPending(incoming, splashWindowMs),
     mergedSplash: false,
   };
 }

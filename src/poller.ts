@@ -83,6 +83,7 @@ export class Poller {
       const r = mergeStep(ph, pending, this.cfg.polling.splashWindowMs, {
         toPending: (raw) => this.toPending(raw, k, m.machineId),
         applySplash: (pendingBrew, splash) => this.applySplash(pendingBrew, splash),
+        isSplash: (raw) => this.isSplashProduct(raw, m.machineId),
       });
       if (r.commit) this.store.insertBrew(r.commit);
       pending = r.newPending;
@@ -138,6 +139,17 @@ export class Poller {
       this.store.setMeta(this.keyAnchorSummedG(m.machineId), String(summedNow));
       this.store.setMeta(this.keyAnchorBrewCount(m.machineId), String(countNow));
     }
+  }
+
+  // A dispense is a milk "splash" (merged into the preceding brew) only when
+  // its resolved product name is in the configured splashProducts allow-list —
+  // the machine's actual "Splash …" buttons. Standalone milk products (e.g.
+  // "Milk for Choco", "Everfoam") are NOT splashes and commit as their own
+  // brews, so they no longer get swallowed into whatever came before them.
+  private isSplashProduct(ph: ProductHistory, machineId: number): boolean {
+    const key = typeof ph.keyId === "number" ? ph.keyId : null;
+    const name = key != null ? this.store.getProductName(machineId, key) : null;
+    return name != null && this.cfg.splashProducts.includes(name);
   }
 
   // Fold a splash brew into the pending one: add milk (converted via

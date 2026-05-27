@@ -91,6 +91,38 @@ describe("mergeStep", () => {
     expect(r.mergedSplash).toBe(false);
   });
 
+  it("respects an injected isSplash predicate over the type default", () => {
+    const toPending = (incoming: ProductHistory): PendingBrew =>
+      pending({
+        id: incoming.id, drinkType: incoming.type,
+        milkMl: incoming.milk?.consumption ?? 0, splashIds: [],
+        expiresAt: "2026-05-20T10:07:00",
+      });
+
+    // type MILK merges by default — but the predicate says NOT a splash, so it
+    // must flush the pending brew and become its own pending.
+    const notSplash = mergeStep(
+      ph({ id: 2, type: "MILK", machineTimestamp: "2026-05-20T10:02:00", milk: { consumption: 14 } }),
+      pending({ id: 1 }),
+      SPLASH_WINDOW_MS,
+      { toPending, isSplash: () => false },
+    );
+    expect(notSplash.mergedSplash).toBe(false);
+    expect(notSplash.commit?.id).toBe(1);
+    expect(notSplash.newPending?.id).toBe(2);
+
+    // type ESPRESSO never merges by default — but the predicate says it IS a
+    // splash, so it must merge into the pending brew.
+    const isSplash = mergeStep(
+      ph({ id: 3, type: "ESPRESSO", machineTimestamp: "2026-05-20T10:02:00", milk: { consumption: 10 } }),
+      pending({ id: 1, milkMl: 0 }),
+      SPLASH_WINDOW_MS,
+      { toPending, isSplash: () => true },
+    );
+    expect(isSplash.mergedSplash).toBe(true);
+    expect(isSplash.newPending?.id).toBe(1);
+  });
+
   it("Second splash extends the window from its own timestamp", () => {
     const r = mergeStep(
       ph({ id: 3, type: "MILK", machineTimestamp: "2026-05-20T10:04:30", milk: { consumption: 15 } }),

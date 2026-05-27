@@ -63,6 +63,18 @@ describe("loadConfig", () => {
     expect(c.authUrl).toBe("https://auth.example/token");
   });
 
+  it("splashProducts defaults to [] when absent from config.json", () => {
+    writeFiles(minimalConfig, okEnv);
+    const c = loadConfig(dir);
+    expect(c.splashProducts).toEqual([]);
+  });
+
+  it("reads splashProducts from config.json when present", () => {
+    writeFiles({ ...minimalConfig, splashProducts: ["Splash Cold milk", "Splash warm milk"] }, okEnv);
+    const c = loadConfig(dir);
+    expect(c.splashProducts).toEqual(["Splash Cold milk", "Splash warm milk"]);
+  });
+
   it("process.env takes precedence over .env file", () => {
     writeFiles(minimalConfig, okEnv);
     process.env.EVERSYS_CLIENT_ID = "from-process-env";

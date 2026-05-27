@@ -25,6 +25,7 @@ const baseConfig: Config = {
   milkByProduct: {},
   milkUnitMl: 1, // test uses raw consumption as ml
   zeroMilkProducts: [],
+  splashProducts: ["Splash Cold milk", "Splash warm milk"],
   productNameOverrides: {},
   calibration: { minBrewsBetweenCalibrations: 2, maxScaleDelta: 0.5 },
   polling: { brewsIntervalMs: 5000, countersIntervalMs: 60000, splashWindowMs: 300000, backoffMs: [5000] },
@@ -114,14 +115,15 @@ describe("Poller", () => {
     expect(s.getPending(M3)?.drinkType).toBe("MILK");
   });
 
-  it("espresso + milk splash on the SAME machine within 5 min → merged", async () => {
+  it("espresso + a Splash-button milk on the SAME machine within 5 min → merged", async () => {
     const api = new FakeApi();
     api.brewQueue.push([]);
     const p = singleMachinePoller(s, api);
     await p.bootstrap();
+    s.upsertProduct(M2, 15, "Splash warm milk"); // a configured splash button
     api.brewQueue.push([
       { id: 1, machineTimestamp: "2026-05-20T10:00:00", type: "ESPRESSO", isDouble: 0, milk: { consumption: 0 } },
-      { id: 2, machineTimestamp: "2026-05-20T10:02:00", type: "MILK", isDouble: 0, milk: { consumption: 30 } },
+      { id: 2, machineTimestamp: "2026-05-20T10:02:00", type: "MILK", isDouble: 0, keyId: 15, milk: { consumption: 30 } },
     ]);
     await p.tickBrews();
     const pending = s.getPending(M2);
@@ -131,6 +133,48 @@ describe("Poller", () => {
     // Splash-merged brews must recompute CO₂ from the new milk total:
     // 7g beans × 1.24 + 30ml × 1.4 = 8.68 + 42 = 50.68
     expect(pending?.co2G).toBeCloseTo(50.68, 2);
+  });
+
+  it("does NOT merge a standalone milk product (Milk for Choco) into the preceding brew", async () => {
+    const api = new FakeApi();
+    api.brewQueue.push([]);
+    const p = singleMachinePoller(s, api);
+    await p.bootstrap();
+    s.upsertProduct(M2, 21, "Black tea 93°");
+    s.upsertProduct(M2, 16, "Milk for Choco");
+    api.brewQueue.push([
+      { id: 1, machineTimestamp: "2026-05-20T10:00:00", type: "HOT_WATER", isDouble: 0, keyId: 21, milk: { consumption: 0 } },
+      { id: 2, machineTimestamp: "2026-05-20T10:00:28", type: "MILK_FOAM", isDouble: 0, keyId: 16, milk: { consumption: 14 } },
+    ]);
+    await p.tickBrews();
+
+    // The tea committed clean (0 milk, no splash); Milk for Choco is its own pending brew.
+    const tea = s.getRecentBrews(5).find(b => b.id === 1)!;
+    expect(tea.milkMl).toBe(0);
+    expect(tea.splashIds).toEqual([]);
+    const pending = s.getPending(M2);
+    expect(pending?.id).toBe(2);
+    expect(pending?.drinkType).toBe("MILK_FOAM");
+    expect(pending?.productKey).toBe(16);
+  });
+
+  it("DOES merge a configured splash button (Splash warm milk) into the preceding brew", async () => {
+    const api = new FakeApi();
+    api.brewQueue.push([]);
+    const p = singleMachinePoller(s, api);
+    await p.bootstrap();
+    s.upsertProduct(M2, 7, "Dbl. Cappuccino");
+    s.upsertProduct(M2, 15, "Splash warm milk");
+    api.brewQueue.push([
+      { id: 1, machineTimestamp: "2026-05-20T10:00:00", type: "CAPPUCCINO", isDouble: 0, keyId: 7, milk: { consumption: 11 } },
+      { id: 2, machineTimestamp: "2026-05-20T10:01:00", type: "MILK_FOAM", isDouble: 0, keyId: 15, milk: { consumption: 5 } },
+    ]);
+    await p.tickBrews();
+
+    const pending = s.getPending(M2);
+    expect(pending?.id).toBe(1);              // still the cappuccino
+    expect(pending?.splashIds).toEqual([2]);  // splash merged in
+    expect(pending?.milkMl).toBe(16);         // (11 + 5) × milkUnitMl(1)
   });
 
   it("computes co2 with config factors and tags the brew with machineId", async () => {

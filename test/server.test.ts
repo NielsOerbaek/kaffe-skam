@@ -15,6 +15,7 @@ const CFG: Config = {
   milkByProduct: {},
   milkUnitMl: 12.5,
   zeroMilkProducts: [],
+  splashProducts: [],
   productNameOverrides: {},
   calibration: { minBrewsBetweenCalibrations: 50, maxScaleDelta: 0.5 },
   polling: { brewsIntervalMs: 5000, countersIntervalMs: 60000, splashWindowMs: 300000, backoffMs: [5000] },
