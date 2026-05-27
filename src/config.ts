@@ -24,7 +24,9 @@ export interface Config {
   server: { port: number; stateRefreshMs: number };
   api: { baseUrl: string };
   machines: MachineConfig[];
-  token: string;
+  clientId: string;
+  clientSecret: string;
+  authUrl: string;                               // Eversys OAuth token endpoint
   locationName: string;                          // brand label shown in the top-left corner
 }
 
@@ -90,8 +92,11 @@ export function loadConfig(dir: string): Config {
   if (!existsSync(configPath)) throw new Error(`Missing config.json at ${configPath}`);
 
   const env = loadEnvFile(dir);
-  const token = readVar(env, "EVERSYS_TOKEN");
-  if (!token) throw new Error(`Missing EVERSYS_TOKEN (set in .env or process environment)`);
+  const clientId = readVar(env, "EVERSYS_CLIENT_ID");
+  if (!clientId) throw new Error(`Missing EVERSYS_CLIENT_ID (set in .env or process environment)`);
+  const clientSecret = readVar(env, "EVERSYS_CLIENT_SECRET");
+  if (!clientSecret) throw new Error(`Missing EVERSYS_CLIENT_SECRET (set in .env or process environment)`);
+  const authUrl = readVar(env, "EVERSYS_AUTH_URL") ?? "https://auth.eversys-telemetry.com/oauth/token";
   const machinesRaw = readVar(env, "EVERSYS_MACHINES");
   if (!machinesRaw) throw new Error(`Missing EVERSYS_MACHINES (set in .env or process environment)`);
   const machines = parseMachines(machinesRaw);
@@ -128,7 +133,9 @@ export function loadConfig(dir: string): Config {
     zeroMilkProducts,
     productNameOverrides,
     machines,
-    token,
+    clientId,
+    clientSecret,
+    authUrl,
     locationName,
   };
 }
