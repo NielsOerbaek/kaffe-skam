@@ -68,4 +68,34 @@ export class TokenManager {
     writeFileSync(tmp, JSON.stringify(t), { mode: 0o600 });
     renameSync(tmp, this.opts.storePath);
   }
+
+  refreshOnce(): Promise<void> {
+    if (this.inFlight) return this.inFlight;
+    this.inFlight = this.doRefresh().finally(() => { this.inFlight = null; });
+    return this.inFlight;
+  }
+
+  private async doRefresh(): Promise<void> {
+    if (!this.tokens) throw new Error("TokenManager.load() has not been called");
+    const r = await this.fetchFn(this.opts.authUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        grant_type: "refresh_token",
+        access_token: this.tokens.accessToken,
+        refresh_token: this.tokens.refreshToken,
+        client_id: this.opts.clientId,
+        client_secret: this.opts.clientSecret,
+      }),
+    });
+    if (!r.ok) throw new Error(`token refresh failed: HTTP ${r.status}`);
+    const data = (await r.json()) as RefreshResponse;
+    const next: StoredTokens = {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token,
+      expiresAt: this.now() + data.expires_in * 1000,
+    };
+    this.tokens = next;
+    this.persist(next);
+  }
 }

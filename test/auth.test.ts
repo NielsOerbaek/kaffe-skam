@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { mkdtempSync, rmSync, writeFileSync, readFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -40,5 +40,58 @@ describe("TokenManager", () => {
     writeFileSync(storePath, JSON.stringify({ accessToken: "x" }));
     const tm = new TokenManager(baseOpts());
     expect(() => tm.load()).toThrow(/malformed/i);
+  });
+
+  it("refreshOnce posts the rotation body and persists the new pair", async () => {
+    seed({ accessToken: "acc-1", refreshToken: "ref-1", expiresAt: 1000 });
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify({
+      token_type: "Bearer", expires_in: 604800, access_token: "acc-2", refresh_token: "ref-2",
+    }), { status: 200 }));
+    const tm = new TokenManager({ ...baseOpts(), fetchFn: fetchFn as unknown as typeof fetch, now: () => 5000 });
+    tm.load();
+
+    await tm.refreshOnce();
+
+    expect(tm.getAccessToken()).toBe("acc-2");
+    const [url, init] = fetchFn.mock.calls[0]!;
+    expect(url).toBe("https://auth.x/oauth/token");
+    expect((init as any).method).toBe("POST");
+    expect((init as any).headers["Content-Type"]).toBe("application/json");
+    expect(JSON.parse((init as any).body)).toEqual({
+      grant_type: "refresh_token",
+      access_token: "acc-1",
+      refresh_token: "ref-1",
+      client_id: "62",
+      client_secret: "secret",
+    });
+    const onDisk = JSON.parse(readFileSync(storePath, "utf8"));
+    expect(onDisk.accessToken).toBe("acc-2");
+    expect(onDisk.refreshToken).toBe("ref-2");
+    expect(onDisk.expiresAt).toBe(5000 + 604800 * 1000);
+  });
+
+  it("concurrent refreshOnce calls collapse to a single network request", async () => {
+    seed({ accessToken: "acc-1", refreshToken: "ref-1", expiresAt: 1000 });
+    let resolve!: (r: Response) => void;
+    const fetchFn = vi.fn(() => new Promise<Response>((res) => { resolve = res; }));
+    const tm = new TokenManager({ ...baseOpts(), fetchFn: fetchFn as unknown as typeof fetch, now: () => 0 });
+    tm.load();
+
+    const p1 = tm.refreshOnce();
+    const p2 = tm.refreshOnce();
+    resolve(new Response(JSON.stringify({
+      token_type: "Bearer", expires_in: 100, access_token: "acc-2", refresh_token: "ref-2",
+    }), { status: 200 }));
+    await Promise.all([p1, p2]);
+
+    expect(fetchFn).toHaveBeenCalledTimes(1);
+  });
+
+  it("refreshOnce rejects on a non-2xx response", async () => {
+    seed({ accessToken: "acc-1", refreshToken: "ref-1", expiresAt: 1000 });
+    const fetchFn = vi.fn(async () => new Response("nope", { status: 400 }));
+    const tm = new TokenManager({ ...baseOpts(), fetchFn: fetchFn as unknown as typeof fetch });
+    tm.load();
+    await expect(tm.refreshOnce()).rejects.toThrow(/refresh failed/i);
   });
 });
