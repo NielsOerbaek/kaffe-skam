@@ -34,7 +34,9 @@ const baseConfig: Config = {
     { id: M2, floor: "2. sal" },
     { id: M3, floor: "3. sal" },
   ],
-  token: "tok",
+  clientId: "tok",
+  clientSecret: "tok",
+  authUrl: "https://auth.x/token",
   locationName: "Test Office",
 };
 
