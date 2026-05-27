@@ -6,7 +6,11 @@ const env = Object.fromEntries(
     .filter(l => l.trim() && !l.startsWith("#"))
     .map(l => { const i = l.indexOf("="); return [l.slice(0, i).trim(), l.slice(i + 1).trim()]; })
 );
-const TOKEN = env.EVERSYS_TOKEN;
+// The live access token now lives in the token store (seeded once via the
+// api-token.php generator, then refreshed by the app), not in .env. Read the
+// current one. Like backfill, this one-shot diagnostic doesn't refresh — a
+// valid stored token is enough.
+const TOKEN = JSON.parse(readFileSync("data/eversys-tokens.json", "utf8")).accessToken;
 const machines = env.EVERSYS_MACHINES.split(",").map(s => {
   const [id, ...rest] = s.split(":");
   return { id: Number(id.trim()), floor: rest.join(":").trim() };
