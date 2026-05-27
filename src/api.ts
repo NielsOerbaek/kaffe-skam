@@ -1,8 +1,13 @@
 import type { ProductHistory } from "./types.ts";
 
+export interface AuthProvider {
+  getAccessToken(): string;
+  refreshOnce(): Promise<void>;
+}
+
 export interface EversysClientOpts {
   baseUrl: string;
-  token: string;
+  auth: AuthProvider;
   machineId: number;
   fetchFn?: typeof fetch;
 }
@@ -35,9 +40,13 @@ export class EversysClient {
 
   private async req<T>(path: string): Promise<T> {
     const url = `${this.opts.baseUrl}${path}`;
-    const r = await this.fetchFn(url, {
-      headers: { Authorization: `Bearer ${this.opts.token}` },
-    });
+    const send = () =>
+      this.fetchFn(url, { headers: { Authorization: `Bearer ${this.opts.auth.getAccessToken()}` } });
+    let r = await send();
+    if (r.status === 401) {
+      await this.opts.auth.refreshOnce();
+      r = await send();
+    }
     if (r.status === 429) throw new ApiRateLimitError();
     if (!r.ok) throw new ApiError(`HTTP ${r.status} for ${url}`, r.status);
     return r.json() as Promise<T>;
