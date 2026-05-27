@@ -798,8 +798,9 @@ body.page-tv::after { display: none; }
   display: flex;
   flex-direction: column;
   padding: 2.6vh 6vw 2vh;
-  /* Generous gap between sections — whitespace does the grouping, not lines. */
-  gap: 3vh;
+  /* Whitespace separates most sections; a couple of structural lines + the
+     brew card carry the rest of the grouping. */
+  gap: 1.7vh;
 }
 
 /* ── Title ── */
@@ -853,8 +854,13 @@ body.page-tv::after { display: none; }
 .page-tv .equiv.fading { opacity: 0; }
 
 /* ── Month ── */
-/* "MAJ 2026" reads as a muted section heading tied to the stats below it
-   (no underline of its own — that would cap the section above instead). */
+/* A line ABOVE "MAJ 2026" marks where the month group begins, so the stats
+   beneath read as belonging to that month. */
+.page-tv .tv-month {
+  border-top: 1px solid var(--hairline);
+  padding-top: 1.6vh;
+}
+/* "MAJ 2026" is a muted heading tied tight to its stats below it. */
 .page-tv .month-header {
   color: var(--muted);
   margin-bottom: 0.4vh;
@@ -871,7 +877,14 @@ body.page-tv::after { display: none; }
   font-feature-settings: "tnum" 1, "lnum" 1;
 }
 
-/* ── Latest brew ── */
+/* ── Latest brew: boxed as a card so it stands apart ── */
+.page-tv .tv-brew {
+  border: 1px solid var(--hairline);
+  border-radius: 14px;
+  padding: 1.5vh 3vw;
+  background: rgba(255, 255, 255, 0.4);
+  box-shadow: 0 6px 22px rgba(20, 20, 20, 0.07);
+}
 .page-tv .drink-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2vw; margin-top: 0.2vh; }
 .page-tv .drink-name { font-size: clamp(32px, 4.5vh, 84px); font-weight: 300; letter-spacing: -0.025em; line-height: 1; }
 .page-tv .drink-floor {
@@ -894,10 +907,10 @@ body.page-tv::after { display: none; }
   font-feature-settings: "tnum" 1, "lnum" 1, "ss01";
 }
 .page-tv .delta-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.8vw; margin-top: 0.6vh; }
-.page-tv .delta-inline { font-size: clamp(20px, 2.8vh, 38px); font-weight: 400; letter-spacing: -0.005em; color: var(--fg); }
+.page-tv .delta-inline { font-size: clamp(20px, 2.8vh, 32px); font-weight: 400; letter-spacing: -0.005em; color: var(--fg); }
 .page-tv .delta-inline.up { color: var(--up); }
 .page-tv .delta-inline.down { color: var(--down); }
-.page-tv .vs { font-size: clamp(20px, 2.8vh, 38px); color: var(--muted); font-weight: 300; letter-spacing: -0.005em; }
+.page-tv .vs { font-size: clamp(20px, 2.8vh, 32px); color: var(--muted); font-weight: 300; letter-spacing: -0.005em; }
 
 /* ── Earlier brews (cap at 3 rows on the slide) ── */
 .page-tv .previous-list { list-style: none; margin: 0.4vh 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.7vh; }
