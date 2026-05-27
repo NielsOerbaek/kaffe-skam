@@ -53,7 +53,7 @@ describe("TokenManager", () => {
     await tm.refreshOnce();
 
     expect(tm.getAccessToken()).toBe("acc-2");
-    const [url, init] = fetchFn.mock.calls[0]!;
+    const [url, init] = fetchFn.mock.calls[0] as unknown as [string, RequestInit];
     expect(url).toBe("https://auth.x/oauth/token");
     expect((init as any).method).toBe("POST");
     expect((init as any).headers["Content-Type"]).toBe("application/json");
