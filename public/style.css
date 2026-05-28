@@ -878,6 +878,17 @@ body.page-tv::after { display: none; }
   font-size: clamp(48px, 6vh, 130px);
   margin: 0.3vh 0 0.1vh;
 }
+/* Small muted savings line under "Seneste år" — wraps within the column.
+   Hidden when empty (only shown when savings > 0). */
+.page-tv .tv-saving {
+  margin-top: 0.4vh;
+  font-size: 1.4vh;
+  color: var(--muted-dim);
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+}
+.page-tv .tv-saving:empty { display: none; }
 
 /* ── Latest brew: boxed as a card so it stands apart ── */
 .page-tv .tv-brew {

@@ -61,6 +61,7 @@ export interface ApiState {
   month:   { cups: number; co2_g: number };
   rolling30d:  { cups: number; co2_g: number }; // last 30 days (rolling)
   rolling365d: { cups: number; co2_g: number }; // last 365 days (rolling)
+  baselineG: number;        // current calibrated CO₂ for one plain Coffee
   lastBrews: BrewView[]; // up to 3, newest first; empty array if none
   stale: boolean;
   lastPollOkAt: string | null;

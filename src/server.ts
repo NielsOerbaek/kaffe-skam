@@ -207,6 +207,7 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
     month: { cups: month.cups, co2_g: month.co2_g },
     rolling30d,
     rolling365d,
+    baselineG,
     lastBrews: recent.map(b => {
       const productName = opts.store.getProductName(b.machineId, b.productKey);
       return {

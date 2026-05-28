@@ -201,6 +201,21 @@ function render(s) {
   if ($("rolling365d-co2")) {
     setBigNumber($("rolling365d-co2"), s.rolling365d?.co2_g);
     if ($("rolling365d-cups")) $("rolling365d-cups").textContent = cupsLabel(s.rolling365d?.cups ?? 0);
+    // What the year's CO₂ would have been if every cup were just black
+    // coffee at the current calibrated dose — the difference is "saved".
+    const savEl = $("rolling365d-saving");
+    if (savEl) {
+      const cups = s.rolling365d?.cups ?? 0;
+      const actual = s.rolling365d?.co2_g ?? 0;
+      const baseline = s.baselineG ?? 0;
+      const savedG = actual - cups * baseline;
+      if (savedG > 0) {
+        const tons = (savedG / 1_000_000).toFixed(1).replace(".", ",");
+        savEl.textContent = `Vi kunne have sparet ${tons} ton CO₂ hvis alle drak sort kaffe`;
+      } else {
+        savEl.textContent = "";
+      }
+    }
   }
 
   $("chip-time").textContent = fmtClock();
