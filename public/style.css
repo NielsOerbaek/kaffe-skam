@@ -806,7 +806,7 @@ body.page-tv::after { display: none; }
   padding: 2.6vh 6vw 2vh;
   /* Whitespace separates most sections; a couple of structural lines + the
      brew card carry the rest of the grouping. */
-  gap: 1.7vh;
+  gap: 1.5vh;
 }
 
 /* ── Title ── */
@@ -875,14 +875,15 @@ body.page-tv::after { display: none; }
   min-width: 0;
 }
 .page-tv .tv-period .hero {
-  font-size: clamp(48px, 6vh, 130px);
+  font-size: clamp(44px, 5.5vh, 120px);
   margin: 0.3vh 0 0.1vh;
 }
-/* Small muted savings line under "Seneste år" — wraps within the column.
-   Hidden when empty (only shown when savings > 0). */
+/* Small muted savings line under "Seneste år". Capped to ~18px so it stays
+   on (or close to) one line on a real 1080-wide portrait TV instead of
+   ballooning to ~27px and wrapping. Hidden when empty. */
 .page-tv .tv-saving {
   margin-top: 0.4vh;
-  font-size: 1.4vh;
+  font-size: clamp(12px, 1.4vh, 18px);
   color: var(--muted-dim);
   font-weight: 300;
   letter-spacing: 0.02em;
