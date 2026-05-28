@@ -33,7 +33,8 @@ function brewDisplayName(brew) {
 
 function fmtG(g) {
   if (g == null) return "—";
-  if (g >= 1000) return (g / 1000).toFixed(1).replace(".", ",") + " kg";
+  if (g >= 1_000_000) return (g / 1_000_000).toFixed(1).replace(".", ",") + " ton";
+  if (g >= 1000)      return (g / 1000).toFixed(1).replace(".", ",") + " kg";
   return Math.round(g) + " g";
 }
 function escape(s) {
@@ -41,7 +42,8 @@ function escape(s) {
 }
 function setBigNumber(el, g) {
   if (g == null) { el.textContent = "—"; return; }
-  el.innerHTML = `${escape(fmtG(g))}<span class="unit-tail">&nbsp;CO₂</span>`;
+  const tail = g >= 1_000_000 ? "CO₂eq" : "CO₂";
+  el.innerHTML = `${escape(fmtG(g))}<span class="unit-tail">&nbsp;${tail}</span>`;
 }
 function smallNumberHtml(g) {
   return `${escape(fmtG(g))}<span class="unit-tail">&nbsp;CO₂</span>`;
@@ -184,10 +186,22 @@ function render(s) {
   todayCo2g = s.today.co2_g;
   updateEquivalence();
 
-  // Left bottom — "<Month> <Year>" header + month-to-date stats
-  $("month-header").textContent = fmtMonthHeader();
-  $("month-cups").textContent = s.month.cups.toLocaleString("da-DK");
-  $("month-co2").textContent = fmtG(s.month.co2_g);
+  // Left bottom — "<Month> <Year>" header + month-to-date stats (on / only;
+  // /tv renders rolling 30 / 365 day stats instead — see below).
+  if ($("month-header")) $("month-header").textContent = fmtMonthHeader();
+  if ($("month-cups"))   $("month-cups").textContent   = s.month.cups.toLocaleString("da-DK");
+  if ($("month-co2"))    $("month-co2").textContent    = fmtG(s.month.co2_g);
+
+  // Rolling 30d / 365d stats (on /tv only; / has no elements with these IDs).
+  const cupsLabel = (n) => `${n.toLocaleString("da-DK")} ${n === 1 ? "kop" : "kopper"}`;
+  if ($("rolling30d-co2")) {
+    setBigNumber($("rolling30d-co2"), s.rolling30d?.co2_g);
+    if ($("rolling30d-cups")) $("rolling30d-cups").textContent = cupsLabel(s.rolling30d?.cups ?? 0);
+  }
+  if ($("rolling365d-co2")) {
+    setBigNumber($("rolling365d-co2"), s.rolling365d?.co2_g);
+    if ($("rolling365d-cups")) $("rolling365d-cups").textContent = cupsLabel(s.rolling365d?.cups ?? 0);
+  }
 
   $("chip-time").textContent = fmtClock();
   $("stale-badge").hidden = !s.stale;

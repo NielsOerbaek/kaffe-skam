@@ -169,6 +169,15 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
 
   const today = opts.store.getTodayTotals(localDate);
   const month = opts.store.getMonthTotals(localMonth);
+
+  // Rolling 30d / 365d windows (inclusive of today). Sum across the daily
+  // totals the store already exposes — same windows /api/epaper uses, but
+  // here we also keep the cup counts.
+  const sumPeriod = (days: Array<{ cups: number; co2_g: number }>) =>
+    days.reduce((a, d) => ({ cups: a.cups + d.cups, co2_g: a.co2_g + d.co2_g }), { cups: 0, co2_g: 0 });
+  const rolling30d  = sumPeriod(opts.store.getDailyTotals(localDateString(new Date(Date.now() - 29  * 86400_000))));
+  const rolling365d = sumPeriod(opts.store.getDailyTotals(localDateString(new Date(Date.now() - 364 * 86400_000))));
+
   const recent = opts.store.getRecentBrews(6);
 
   const floorByMachine = new Map(opts.config.machines.map(m => [m.id, m.floor]));
@@ -196,6 +205,8 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
     locationName: opts.config.locationName,
     today: { cups: today.cups, co2_g: today.co2_g },
     month: { cups: month.cups, co2_g: month.co2_g },
+    rolling30d,
+    rolling365d,
     lastBrews: recent.map(b => {
       const productName = opts.store.getProductName(b.machineId, b.productKey);
       return {

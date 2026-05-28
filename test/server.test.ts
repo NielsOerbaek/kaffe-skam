@@ -122,4 +122,19 @@ describe("server /api/state", () => {
     const j = await r.json();
     expect(j.today.cups).toBe(1);
   });
+
+  it("includes rolling 30d and 365d windows with cups + co2_g", async () => {
+    const today = new Date().toISOString().slice(0, 10);
+    s.insertBrew({
+      id: 1, machineId: M2, productKey: null, machineTs: `${today}T10:00:00`,
+      localDate: today, localMonth: today.slice(0, 7),
+      drinkType: "ESPRESSO", isDouble: 0,
+      beansG: 7, milkMl: 0, co2G: 8.68,
+      splashIds: [], rawJson: "{}",
+    });
+    const r = await fetch(`${url}/api/state`);
+    const j = await r.json();
+    expect(j.rolling30d).toEqual({ cups: 1, co2_g: 8.68 });
+    expect(j.rolling365d).toEqual({ cups: 1, co2_g: 8.68 });
+  });
 });

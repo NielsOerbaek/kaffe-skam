@@ -851,30 +851,26 @@ body.page-tv::after { display: none; }
 .page-tv .sub { font-size: 2.3vh; color: var(--fg); font-weight: 300; letter-spacing: 0.01em; }
 
 /* ── Month ── */
-/* A line ABOVE "MAJ 2026" marks where the month group begins, so the stats
-   beneath read as belonging to that month. */
-.page-tv .tv-month {
+/* Rolling period stats: a line above marks where the period group starts;
+   two columns side by side, each formatted like the today hero (large CO₂
+   with cup count beneath). The hero is a bit smaller than today's so the
+   two columns fit a portrait TV width comfortably. */
+.page-tv .tv-period {
   border-top: 1px solid var(--hairline);
   padding-top: 1.6vh;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6vw;
 }
-/* "MAJ 2026" is a muted heading tied tight to its stats below it.
-   Cancel the global .month-header underline — the only month line is ABOVE. */
-.page-tv .month-header {
-  color: var(--muted);
-  margin-bottom: 0.4vh;
-  padding-bottom: 0;
-  border-bottom: none;
+.page-tv .period-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4vh;
+  min-width: 0;
 }
-.page-tv .month-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 6vw; }
-.page-tv .month-stats > div { display: flex; flex-direction: column; gap: 0.5vh; }
-/* Month-to-date is supporting context — muted, below the two focal CO₂ heroes. */
-.page-tv .month-stats .n {
-  font-size: clamp(36px, 4.5vh, 92px);
-  font-weight: 300;
-  letter-spacing: -0.02em;
-  line-height: 0.95;
-  color: var(--muted);
-  font-feature-settings: "tnum" 1, "lnum" 1;
+.page-tv .tv-period .hero {
+  font-size: clamp(48px, 6vh, 130px);
+  margin: 0.3vh 0 0.1vh;
 }
 
 /* ── Latest brew: boxed as a card so it stands apart ── */

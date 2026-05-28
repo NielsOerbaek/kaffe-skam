@@ -23,18 +23,17 @@
       <div class="sub" id="today-cups-line">&nbsp;</div>
     </section>
 
-    <!-- Month to date -->
-    <section class="tv-sec tv-month">
-      <div class="label month-header" id="month-header">—</div>
-      <div class="month-stats">
-        <div>
-          <div class="label">Antal kopper</div>
-          <div class="n" id="month-cups">—</div>
-        </div>
-        <div>
-          <div class="label">CO₂ udledt</div>
-          <div class="n" id="month-co2">—</div>
-        </div>
+    <!-- Rolling period stats: last 30 days + last 365 days, side by side -->
+    <section class="tv-sec tv-period">
+      <div class="period-col">
+        <div class="label">Seneste måned</div>
+        <div class="hero" id="rolling30d-co2">—</div>
+        <div class="sub" id="rolling30d-cups">&nbsp;</div>
+      </div>
+      <div class="period-col">
+        <div class="label">Seneste år</div>
+        <div class="hero" id="rolling365d-co2">—</div>
+        <div class="sub" id="rolling365d-cups">&nbsp;</div>
       </div>
     </section>
 
