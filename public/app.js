@@ -40,15 +40,13 @@ function fmtG(g) {
 function escape(s) {
   return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 }
-// One unit tail everywhere: "CO₂eq" — matches the brand label ("Dagens CO₂eq")
-// and stays consistent across g / kg / ton. The .unit-tail CSS uppercases it
-// so it renders as "CO₂EQ" alongside the hero number.
+// One unit tail everywhere: "CO₂".
 function setBigNumber(el, g) {
   if (g == null) { el.textContent = "—"; return; }
-  el.innerHTML = `${escape(fmtG(g))}<span class="unit-tail">&nbsp;CO₂eq</span>`;
+  el.innerHTML = `${escape(fmtG(g))}<span class="unit-tail">&nbsp;CO₂</span>`;
 }
 function smallNumberHtml(g) {
-  return `${escape(fmtG(g))}<span class="unit-tail">&nbsp;CO₂eq</span>`;
+  return `${escape(fmtG(g))}<span class="unit-tail">&nbsp;CO₂</span>`;
 }
 function fmtClock(d = new Date()) {
   const p = (n) => String(n).padStart(2, "0");
@@ -234,7 +232,9 @@ function render(s) {
   if (latest.milkMl > 0) parts.push(`${Math.round(latest.milkMl)} ml mælk`);
   if (latest.splashCount === 1) parts.push("+ 1 skvæt");
   else if (latest.splashCount > 1) parts.push(`+ ${latest.splashCount} skvæt`);
-  $("composition").innerHTML = parts.length ? parts.join("  ·  ") : "&nbsp;";
+  // Empty string (not &nbsp;) so :empty matches and the line collapses for
+  // zero-ingredient drinks (Black tea, Hot Water, etc.) — even card spacing.
+  $("composition").innerHTML = parts.length ? parts.join("  ·  ") : "";
 
   setBigNumber($("brew-co2"), latest.co2G);
 

@@ -207,8 +207,11 @@ body::after {
   text-transform: uppercase;
   white-space: nowrap;
 }
-/* Generic tail used in small contexts (previous-list rows). Uppercase like
-   the hero tail so "CO₂eq" renders as "CO₂EQ" consistently. */
+/* Collapse the composition line when a drink has no beans + no milk
+   (Black tea, Hot Water, …) so the card spacing stays even. */
+.composition:empty { display: none; }
+
+/* Generic tail used in small contexts (previous-list rows). */
 .unit-tail {
   color: var(--muted);
   font-weight: 300;
@@ -884,10 +887,12 @@ body.page-tv::after { display: none; }
   /* Extra breathing room above/below — adds to the .tv flex gap so the card
      stands clearly apart from the month stats and the Tidligere list. */
   margin-block: 1.6vh;
+  /* Uniform gap between every child of the card so the rhythm is even. */
+  gap: 0.9vh;
   background: rgba(255, 255, 255, 0.4);
   box-shadow: 0 6px 22px rgba(20, 20, 20, 0.07);
 }
-.page-tv .drink-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2vw; margin-top: 0.2vh; }
+.page-tv .drink-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2vw; }
 .page-tv .drink-name { font-size: clamp(32px, 4.5vh, 84px); font-weight: 300; letter-spacing: -0.025em; line-height: 1; }
 .page-tv .drink-floor {
   font-size: 1.7vh;
@@ -897,7 +902,7 @@ body.page-tv::after { display: none; }
   font-weight: 500;
 }
 .page-tv .drink-floor:empty { display: none; }
-.page-tv .composition { font-size: 2vh; color: var(--muted); font-weight: 300; letter-spacing: 0.02em; margin-top: 0.2vh; }
+.page-tv .composition { font-size: 2vh; color: var(--muted); font-weight: 300; letter-spacing: 0.02em; }
 .page-tv .brew-co2 {
   font-size: clamp(60px, 7vh, 150px);
   font-weight: 200;
@@ -905,10 +910,9 @@ body.page-tv::after { display: none; }
   letter-spacing: -0.045em;
   color: var(--fg);
   white-space: nowrap;
-  margin-top: 0.6vh;
   font-feature-settings: "tnum" 1, "lnum" 1, "ss01";
 }
-.page-tv .delta-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.8vw; margin-top: 0.6vh; }
+.page-tv .delta-line { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.8vw; }
 .page-tv .delta-inline { font-size: clamp(20px, 2.8vh, 32px); font-weight: 400; letter-spacing: -0.005em; color: var(--fg); }
 .page-tv .delta-inline.up { color: var(--up); }
 .page-tv .delta-inline.down { color: var(--down); }
