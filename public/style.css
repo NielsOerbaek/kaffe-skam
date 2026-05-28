@@ -849,9 +849,6 @@ body.page-tv::after { display: none; }
   font-feature-settings: "tnum" 1, "lnum" 1, "ss01";
 }
 .page-tv .sub { font-size: 2.3vh; color: var(--fg); font-weight: 300; letter-spacing: 0.01em; }
-.page-tv .sub-faint { font-size: 1.9vh; color: var(--muted); font-weight: 300; }
-.page-tv .equiv { transition: opacity 600ms ease; }
-.page-tv .equiv.fading { opacity: 0; }
 
 /* ── Month ── */
 /* A line ABOVE "MAJ 2026" marks where the month group begins, so the stats
