@@ -40,13 +40,15 @@ function fmtG(g) {
 function escape(s) {
   return String(s).replace(/[&<>]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
 }
+// One unit tail everywhere: "CO₂eq" — matches the brand label ("Dagens CO₂eq")
+// and stays consistent across g / kg / ton. The .unit-tail CSS uppercases it
+// so it renders as "CO₂EQ" alongside the hero number.
 function setBigNumber(el, g) {
   if (g == null) { el.textContent = "—"; return; }
-  const tail = g >= 1_000_000 ? "CO₂eq" : "CO₂";
-  el.innerHTML = `${escape(fmtG(g))}<span class="unit-tail">&nbsp;${tail}</span>`;
+  el.innerHTML = `${escape(fmtG(g))}<span class="unit-tail">&nbsp;CO₂eq</span>`;
 }
 function smallNumberHtml(g) {
-  return `${escape(fmtG(g))}<span class="unit-tail">&nbsp;CO₂</span>`;
+  return `${escape(fmtG(g))}<span class="unit-tail">&nbsp;CO₂eq</span>`;
 }
 function fmtClock(d = new Date()) {
   const p = (n) => String(n).padStart(2, "0");

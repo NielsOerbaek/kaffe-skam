@@ -207,12 +207,15 @@ body::after {
   text-transform: uppercase;
   white-space: nowrap;
 }
-/* Generic tail used in small contexts (previous-list rows) */
+/* Generic tail used in small contexts (previous-list rows). Uppercase like
+   the hero tail so "CO₂eq" renders as "CO₂EQ" consistently. */
 .unit-tail {
   color: var(--muted);
   font-weight: 300;
   margin-left: 0.15em;
   font-size: 0.85em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 .hero, .brew-co2 { white-space: nowrap; }
 
