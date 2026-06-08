@@ -77,27 +77,55 @@ body::after {
 .pane { display: flex; flex-direction: column; gap: 1.4vh; min-width: 0; }
 
 .left { justify-content: space-between; }
-.left-top, .left-bottom { display: flex; flex-direction: column; gap: 0.8vh; }
+.left-top { display: flex; flex-direction: column; gap: 0.8vh; }
+
+/* Explanatory lead-in that reads as a sentence flowing into the hero number,
+   in place of the terse all-caps label. */
+.left .today-lead {
+  margin: 0;
+  font-size: clamp(20px, 3vh, 32px);
+  font-weight: 300;
+  line-height: 1.22;
+  letter-spacing: -0.01em;
+  color: var(--muted);
+  max-width: 16ch;
+}
+
+/* Rolling period stats: two columns (last 30 days / last 365 days), each a
+   big CO₂ figure with a cup count beneath — mirrors the /tv slide. */
 .left-bottom {
   padding-top: 3vh;
-  gap: 1.6vh;
+  border-top: 1px solid var(--hairline);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4vw;
 }
-.month-header {
-  font-size: 1.35vh;
-  font-weight: 500;
-  letter-spacing: 0.2em;
-  padding-bottom: 1.2vh;
-  border-bottom: 1px solid var(--hairline);
-}
-.month-stats { display: flex; gap: 4.5vw; margin-top: 1.4vh; }
-.month-stats > div { display: flex; flex-direction: column; gap: 0.9vh; }
-.month-stats .n {
-  font-size: 5.6vh;
-  font-weight: 300;
-  letter-spacing: -0.02em;
-  font-feature-settings: "tnum" 1, "lnum" 1;
+.left .period-col { display: flex; flex-direction: column; gap: 0.5vh; min-width: 0; }
+.left .period-col .n {
+  font-size: clamp(40px, 6.2vh, 96px);
+  font-weight: 200;
+  line-height: 0.95;
+  letter-spacing: -0.04em;
   color: var(--fg);
+  white-space: nowrap;
+  font-feature-settings: "tnum" 1, "lnum" 1, "ss01";
+  margin: 0.6vh 0 0.2vh;
 }
+.left .period-col .sub {
+  font-size: 2.1vh;
+  color: var(--fg);
+  font-weight: 300;
+  letter-spacing: 0.01em;
+}
+.left .period-saving {
+  margin-top: 0.4vh;
+  font-size: clamp(12px, 1.5vh, 17px);
+  color: var(--muted-dim);
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+}
+.left .period-saving:empty { display: none; }
 
 /* ────────────────── labels ────────────────── */
 .label {
@@ -197,7 +225,8 @@ body::after {
 
 /* "CO₂" tail on big numbers — smaller, muted, lifted to the cap-height baseline */
 .hero .unit-tail,
-.brew-co2 .unit-tail {
+.brew-co2 .unit-tail,
+.left .period-col .n .unit-tail {
   color: var(--muted);
   font-weight: 300;
   font-size: 0.42em;
@@ -258,6 +287,10 @@ body::after {
 }
 .previous-list .pb-drink {
   letter-spacing: -0.01em;
+}
+.previous-list .pb-splash {
+  color: var(--muted);
+  font-size: 0.85em;
 }
 .previous-list .pb-co2 {
   text-align: right;
@@ -484,7 +517,8 @@ body::after {
     overflow: visible;
   }
   .hero .unit-tail,
-  .brew-co2 .unit-tail {
+  .brew-co2 .unit-tail,
+  .left .period-col .n .unit-tail {
     font-size: 0.36em;
     vertical-align: 0.62em;
   }
@@ -494,29 +528,17 @@ body::after {
 
   .left .sub { font-size: clamp(16px, 4.2vw, 20px); margin-top: 4px; }
   .left .sub-faint { font-size: clamp(13px, 3.4vw, 16px); margin-top: 2px; }
+  .left .today-lead { font-size: clamp(17px, 4.6vw, 22px); max-width: none; }
 
-  /* ── Month stats: separated from today with its own border ── */
+  /* ── Rolling period stats: separated from today with its own border ── */
   .left-bottom {
     padding-top: 6vw;
     margin-top: 6vw;
-    border-top: 1px solid var(--hairline);
-    gap: 1.4vh;
+    gap: 6vw;
   }
-  .month-header {
-    font-size: clamp(14px, 3.6vw, 17px);
-    letter-spacing: 0.22em;
-    color: var(--fg);
-    padding-bottom: 1.4vh;
-    border-bottom: 1px solid var(--hairline);
-    margin-bottom: 1.6vh;
-  }
-  .month-stats {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 4vw;
-    margin-top: 1.2vh;
-  }
-  .month-stats .n { font-size: clamp(30px, 8vw, 48px); }
+  .left .period-col .n { font-size: clamp(30px, 8vw, 48px); }
+  .left .period-col .sub { font-size: clamp(14px, 3.6vw, 17px); }
+  .left .period-saving { font-size: clamp(12px, 3vw, 14px); }
 
   /* ── Last brew section ── */
   .right .drink-line { gap: 2.5vw; margin-top: 1.2vh; }

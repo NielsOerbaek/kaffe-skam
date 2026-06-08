@@ -13,22 +13,22 @@
   <main class="landscape" id="root">
     <section class="pane left">
       <div class="left-top">
-        <div class="label">Dagens CO₂</div>
+        <p class="today-lead">I dag har vores kaffeforbrug udledt</p>
         <div class="hero" id="today-co2">—</div>
         <div class="sub" id="today-cups-line">&nbsp;</div>
         <div class="sub-faint equiv" id="today-equiv">&nbsp;</div>
       </div>
       <div class="left-bottom">
-        <div class="label month-header" id="month-header">—</div>
-        <div class="month-stats">
-          <div>
-            <div class="label">Antal kopper</div>
-            <div class="n" id="month-cups">—</div>
-          </div>
-          <div>
-            <div class="label">CO₂ udledt</div>
-            <div class="n" id="month-co2">—</div>
-          </div>
+        <div class="period-col">
+          <div class="label">Seneste måned</div>
+          <div class="n" id="rolling30d-co2">—</div>
+          <div class="sub" id="rolling30d-cups">&nbsp;</div>
+        </div>
+        <div class="period-col">
+          <div class="label">Seneste år</div>
+          <div class="n" id="rolling365d-co2">—</div>
+          <div class="sub" id="rolling365d-cups">&nbsp;</div>
+          <div class="period-saving" id="rolling365d-saving"></div>
         </div>
       </div>
     </section>

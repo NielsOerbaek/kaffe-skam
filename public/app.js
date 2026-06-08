@@ -59,13 +59,6 @@ function fmtDa(n, decimals = 0) {
   return n.toLocaleString("da-DK", { maximumFractionDigits: decimals, minimumFractionDigits: decimals });
 }
 const EQUIVALENCES = [
-  // ~200 g CO₂ per km in an average car
-  (g) => {
-    if (g <= 0) return "";
-    const km = g / 200;
-    if (km < 0.1) return "≈ et par meter i bil";
-    return `≈ ${fmtDa(km, km < 10 ? 1 : 0)} km i bil`;
-  },
   // ~80 g CO₂ per banana shipped from Costa Rica
   (g) => {
     if (g <= 0) return "";
@@ -90,6 +83,12 @@ const EQUIVALENCES = [
     const kg = g / 150;
     if (kg < 0.5) return "";
     return `≈ ${fmtDa(kg, kg < 10 ? 1 : 0)} kg æbler fra New Zealand`;
+  },
+  // ~920 g CO₂ per average printed book (production + transport)
+  (g) => {
+    if (g <= 0) return "";
+    const n = Math.max(1, Math.round(g / 920));
+    return `≈ ${fmtDa(n)} ${n === 1 ? "trykt bog" : "trykte bøger"}`;
   },
 ];
 const DA_MONTHS = ["jan", "feb", "mar", "apr", "maj", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
@@ -184,7 +183,7 @@ function render(s) {
   $("today-cups-line").textContent = `${s.today.cups.toLocaleString("da-DK")} ${s.today.cups === 1 ? "kop" : "kopper"} i dag`;
   // Stash today's CO₂ so the equivalence ticker can re-render between fetches
   todayCo2g = s.today.co2_g;
-  updateEquivalence();
+  refreshEquivalence();
 
   // Left bottom — "<Month> <Year>" header + month-to-date stats (on / only;
   // /tv renders rolling 30 / 365 day stats instead — see below).
@@ -253,12 +252,23 @@ function render(s) {
 
   setBigNumber($("brew-co2"), latest.co2G);
 
+  // Coffee IS the baseline, so any drink at or below a black coffee (plain
+  // Coffee, Hot Water, tea, espresso…) gets no "vs. en kop sort kaffe" line —
+  // it'd be meaningless or absurd ("Næsten ingenting…"). Only drinks that
+  // clearly exceed a black coffee carry the comparison.
   const baseline = latest.co2G - latest.deltaVsCoffee;
-  const phrase = fmtMultiplierDa(latest.co2G, baseline);
-  $("delta").textContent = phrase.amount;
-  $("delta").classList.toggle("up",   phrase.direction === "up");
-  $("delta").classList.toggle("down", phrase.direction === "down");
-  $("vs").textContent = phrase.rest;
+  const ratio = baseline > 0 ? latest.co2G / baseline : 0;
+  if (ratio <= 1.05) {
+    $("delta").textContent = "";
+    $("delta").classList.remove("up", "down");
+    $("vs").textContent = "";
+  } else {
+    const phrase = fmtMultiplierDa(latest.co2G, baseline);
+    $("delta").textContent = phrase.amount;
+    $("delta").classList.toggle("up",   phrase.direction === "up");
+    $("delta").classList.toggle("down", phrase.direction === "down");
+    $("vs").textContent = phrase.rest;
+  }
 
   renderPrevious(previous);
 }
@@ -275,11 +285,15 @@ function renderPrevious(previous) {
   }
   for (const b of previous) {
     const name = brewDisplayName(b);
+    const n = b.splashCount ?? 0;
+    const splash = n > 0
+      ? ` <span class="pb-splash">(+ ${escape(String(n))} skvæt mælk)</span>`
+      : "";
     const li = document.createElement("li");
     li.innerHTML =
       `<span class="pb-floor">${escape(b.floor)}</span>` +
       `<span class="pb-time">${escape(fmtBrewTime(b.machineTs))}</span>` +
-      `<span class="pb-drink">${escape(name)}</span>` +
+      `<span class="pb-drink">${escape(name)}${splash}</span>` +
       `<span class="pb-co2">${smallNumberHtml(b.co2G)}</span>`;
     list.appendChild(li);
   }
@@ -298,24 +312,38 @@ function updateLastLabel() {
 // Cross-fading equivalence ticker
 let todayCo2g = 0;
 let equivIdx = 0;
-function updateEquivalence() {
+let equivText = "";
+// Cross-fade to `text`, but only when it actually changes — otherwise the
+// frequent data refreshes (every REFRESH_MS) would re-trigger the fade and
+// make the line flicker.
+function setEquiv(text) {
   const el = $("today-equiv");
-  if (!el) return;
-  // Pick the next non-empty equivalent so we don't show a blank during cycles
-  let text = "";
-  for (let i = 0; i < EQUIVALENCES.length; i++) {
-    const fn = EQUIVALENCES[(equivIdx + i) % EQUIVALENCES.length];
-    text = fn(todayCo2g);
-    if (text) { equivIdx = (equivIdx + i + 1) % EQUIVALENCES.length; break; }
-  }
+  if (!el || text === equivText) return;
+  equivText = text;
   el.classList.add("fading");
   setTimeout(() => {
     el.textContent = text || " ";
     el.classList.remove("fading");
   }, 600);
 }
+// Re-render the CURRENT equivalence for the latest todayCo2g without advancing.
+// Called on every data refresh so the line re-scales as today's CO₂ grows.
+function refreshEquivalence() {
+  let text = "";
+  for (let i = 0; i < EQUIVALENCES.length; i++) {
+    const j = (equivIdx + i) % EQUIVALENCES.length;
+    text = EQUIVALENCES[j](todayCo2g);
+    if (text) { equivIdx = j; break; }
+  }
+  setEquiv(text);
+}
+// Advance to the next non-empty equivalence — only the slow ticker does this.
+function advanceEquivalence() {
+  equivIdx = (equivIdx + 1) % EQUIVALENCES.length;
+  refreshEquivalence();
+}
 
 refresh();
 setInterval(refresh, REFRESH_MS);
 setInterval(updateLastLabel, 10_000);
-setInterval(updateEquivalence, 10_000);
+setInterval(advanceEquivalence, 10_000);
