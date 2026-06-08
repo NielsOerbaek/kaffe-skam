@@ -21,6 +21,9 @@ async function main() {
     authUrl: cfg.authUrl,
     clientId: cfg.clientId,
     clientSecret: cfg.clientSecret,
+    // Local dev against a copy of the box's token: never refresh, or we'd
+    // rotate the shared refresh token and lock the box out.
+    disableRefresh: process.env.EVERSYS_DISABLE_REFRESH === "1",
   });
   tokenManager.load();   // throws a bootstrap hint if the store is missing
   tokenManager.start();

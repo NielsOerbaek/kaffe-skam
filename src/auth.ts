@@ -15,6 +15,10 @@ export interface TokenManagerOpts {
   now?: () => number;
   refreshMarginMs?: number; // default 24h
   checkIntervalMs?: number; // default 1h
+  // Local-dev escape hatch: when true, the manager never hits the auth server.
+  // The refresh token rotates on every refresh and the box is its sole owner,
+  // so a second live instance must NOT refresh or it revokes the box's token.
+  disableRefresh?: boolean;
 }
 
 interface RefreshResponse {
@@ -32,12 +36,14 @@ export class TokenManager {
   private readonly now: () => number;
   private readonly refreshMarginMs: number;
   private readonly checkIntervalMs: number;
+  private readonly disableRefresh: boolean;
 
   constructor(private readonly opts: TokenManagerOpts) {
     this.fetchFn = opts.fetchFn ?? fetch;
     this.now = opts.now ?? Date.now;
     this.refreshMarginMs = opts.refreshMarginMs ?? 24 * 60 * 60 * 1000;
     this.checkIntervalMs = opts.checkIntervalMs ?? 60 * 60 * 1000;
+    this.disableRefresh = opts.disableRefresh ?? false;
   }
 
   load(): void {
@@ -70,6 +76,11 @@ export class TokenManager {
   }
 
   refreshOnce(): Promise<void> {
+    if (this.disableRefresh) {
+      return Promise.reject(new Error(
+        "token refresh disabled (local no-refresh mode); not rotating the box's token",
+      ));
+    }
     if (this.inFlight) return this.inFlight;
     this.inFlight = this.doRefresh().finally(() => { this.inFlight = null; });
     return this.inFlight;
@@ -134,6 +145,10 @@ export class TokenManager {
   }
 
   start(): void {
+    if (this.disableRefresh) {
+      console.warn("[auth] no-refresh mode: proactive refresh disabled; token valid only until expiry");
+      return;
+    }
     if (this.timer) return;
     this.timer = setInterval(() => { void this.checkAndRefresh(); }, this.checkIntervalMs);
     if (typeof this.timer.unref === "function") this.timer.unref();
