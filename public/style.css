@@ -266,7 +266,9 @@ body::after {
 }
 .previous-list li {
   display: grid;
-  grid-template-columns: 8vw 8vw 1fr auto;
+  /* floor + time size to their (short) content so the drink column starts
+     close to them instead of after wide fixed gaps. */
+  grid-template-columns: max-content max-content 1fr auto;
   align-items: baseline;
   gap: 1.5vw;
   font-size: 2.1vh;
