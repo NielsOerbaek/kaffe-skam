@@ -29,7 +29,18 @@ const CFG: Config = {
   clientSecret: "tok",
   authUrl: "https://auth.x/token",
   locationName: "Test Office",
+  building: {
+    label: "Testhuset",
+    floorAreaM2: 1000,
+    ceilingHeightM: 2.5,
+    lethalFractionCo2: 0.10,
+    ambientFractionCo2: 0.00042,
+    co2DensityKgPerM3: 1.83,
+  },
 };
+
+// One full fill of CFG.building: 2500 m³ × 0.09958 × 1.83 kg/m³ ≈ 455.6 kg.
+const DOSE_G = 1000 * 2.5 * (0.10 - 0.00042) * 1.83 * 1000;
 
 describe("server /api/state", () => {
   let s: Store;
@@ -136,5 +147,66 @@ describe("server /api/state", () => {
     const j = await r.json();
     expect(j.rolling30d).toEqual({ cups: 1, co2_g: 8.68 });
     expect(j.rolling365d).toEqual({ cups: 1, co2_g: 8.68 });
+  });
+
+  // ─── "dødelig dosis" bar ──────────────────────────────────────────
+  const insertToday = (id: number, co2G: number) => {
+    const today = new Date().toISOString().slice(0, 10);
+    s.insertBrew({
+      id, machineId: M2, productKey: null, machineTs: `${today}T10:00:00`,
+      localDate: today, localMonth: today.slice(0, 7),
+      drinkType: "CAPPUCCINO", isDouble: 0,
+      beansG: 7, milkMl: 0, co2G,
+      splashIds: [], rawJson: "{}",
+    });
+  };
+
+  it("describes the lethal dose even with no brews", async () => {
+    const j = await (await fetch(`${url}/api/state`)).json();
+    expect(j.lethal.label).toBe("Testhuset");
+    expect(j.lethal.window).toBe(String(new Date().getFullYear()));
+    expect(j.lethal.volumeM3).toBeCloseTo(2500, 6);
+    expect(j.lethal.fractionCo2).toBe(0.10);
+    expect(j.lethal.doseG).toBeCloseTo(DOSE_G, 3);
+    expect(j.lethal.fillsCompleted).toBe(0);
+    expect(j.lethal.progress).toBe(0);
+    expect(j.lethal.daysToNextFill).toBeNull();
+  });
+
+  it("reports progress into the current fill for the calendar year", async () => {
+    insertToday(1, DOSE_G / 4);
+    const j = await (await fetch(`${url}/api/state`)).json();
+    expect(j.year.year).toBe(new Date().getFullYear());
+    expect(j.year.cups).toBe(1);
+    expect(j.year.co2_g).toBeCloseTo(DOSE_G / 4, 3);
+    expect(j.lethal.fillsCompleted).toBe(0);
+    expect(j.lethal.progress).toBeCloseTo(0.25, 6);
+    // A quarter dose over the days elapsed so far → a positive daily rate
+    // and a finite projection for the rest of the fill.
+    expect(j.lethal.gPerDay).toBeGreaterThan(0);
+    expect(j.lethal.daysToNextFill).toBeGreaterThan(0);
+  });
+
+  it("laps once past a whole fill", async () => {
+    insertToday(1, DOSE_G);
+    insertToday(2, DOSE_G / 2);
+    const j = await (await fetch(`${url}/api/state`)).json();
+    expect(j.lethal.fillsCompleted).toBe(1);
+    expect(j.lethal.progress).toBeCloseTo(0.5, 6);
+  });
+
+  it("excludes brews from previous calendar years", async () => {
+    const lastYear = new Date().getFullYear() - 1;
+    s.insertBrew({
+      id: 99, machineId: M2, productKey: null, machineTs: `${lastYear}-12-31T10:00:00`,
+      localDate: `${lastYear}-12-31`, localMonth: `${lastYear}-12`,
+      drinkType: "CAPPUCCINO", isDouble: 0,
+      beansG: 7, milkMl: 0, co2G: DOSE_G,
+      splashIds: [], rawJson: "{}",
+    });
+    const j = await (await fetch(`${url}/api/state`)).json();
+    expect(j.year.cups).toBe(0);
+    expect(j.lethal.fillsCompleted).toBe(0);
+    expect(j.lethal.progress).toBe(0);
   });
 });

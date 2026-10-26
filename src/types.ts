@@ -54,6 +54,22 @@ export interface BrewView {
   deltaVsCoffee: number;
 }
 
+// The "dødelig dosis" block in /api/state — how far this calendar year's
+// coffee has gone toward filling the building with unbreathable air.
+// Hypothetical by construction; see src/lethal.ts.
+export interface LethalView {
+  label: string;                 // building label, e.g. "Thoravej 29"
+  window: string;                // the window being counted, e.g. "2026"
+  co2_g: number;                 // CO₂ in that window
+  volumeM3: number;              // sealed air volume
+  fractionCo2: number;           // concentration counted as lethal (0.10 = 10 %)
+  doseG: number;                 // CO₂ needed for one full fill
+  fillsCompleted: number;        // whole fills so far this window
+  progress: number;              // 0..1 into the current fill
+  gPerDay: number;               // average daily rate across the window so far
+  daysToNextFill: number | null; // at that rate; null when there is no rate
+}
+
 // /api/state JSON shape.
 export interface ApiState {
   locationName: string;
@@ -61,6 +77,8 @@ export interface ApiState {
   month:   { cups: number; co2_g: number };
   rolling30d:  { cups: number; co2_g: number }; // last 30 days (rolling)
   rolling365d: { cups: number; co2_g: number }; // last 365 days (rolling)
+  year:    { year: number; cups: number; co2_g: number }; // calendar year to date
+  lethal: LethalView;
   baselineG: number;        // current calibrated CO₂ for one plain Coffee
   lastBrews: BrewView[]; // up to 3, newest first; empty array if none
   stale: boolean;

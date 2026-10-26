@@ -130,4 +130,21 @@ describe("Store", () => {
     const recent = s.getRecentBrews(1);
     expect(recent[0]?.splashIds).toEqual([2, 3]);
   });
+
+  it("getTotalsSince includes the boundary date and later, plus pending", () => {
+    s.insertBrew(makeBrew({ id: 1, localDate: "2025-12-31", localMonth: "2025-12", co2G: 100 }));
+    s.insertBrew(makeBrew({ id: 2, localDate: "2026-01-01", localMonth: "2026-01", co2G: 10 }));
+    s.insertBrew(makeBrew({ id: 3, localDate: "2026-05-20", localMonth: "2026-05", co2G: 20 }));
+    s.setPending(makePending({ id: 4, localDate: "2026-06-01", localMonth: "2026-06", co2G: 5 }));
+    s.setPending(makePending({ id: 5, machineId: M3, localDate: "2025-11-01", localMonth: "2025-11", co2G: 500 }));
+
+    const t = s.getTotalsSince("2026-01-01");
+    expect(t.cups).toBe(3);               // 2 committed + 1 pending in 2026
+    expect(t.co2_g).toBeCloseTo(35, 6);   // 10 + 20 + 5
+  });
+
+  it("getTotalsSince returns zeroes when nothing is in range", () => {
+    s.insertBrew(makeBrew({ id: 1, localDate: "2025-12-31", localMonth: "2025-12", co2G: 100 }));
+    expect(s.getTotalsSince("2026-01-01")).toEqual({ cups: 0, co2_g: 0 });
+  });
 });

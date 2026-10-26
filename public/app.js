@@ -217,6 +217,8 @@ function render(s) {
     }
   }
 
+  renderLethal(s);
+
   $("chip-time").textContent = fmtClock();
   $("stale-badge").hidden = !s.stale;
 
@@ -271,6 +273,53 @@ function render(s) {
   }
 
   renderPrevious(previous);
+}
+
+// ── "Dødelig dosis" ────────────────────────────────────────────────────
+// How far this calendar year's CO₂ has gone toward filling the building with
+// air humans can't survive. The server does the physics (src/lethal.ts); this
+// only writes the copy. Elements exist on / only — /tv and /device skip it.
+// Date the current fill completes at the year's average rate. The window is
+// the calendar year, so a projection that lands after 31 December never
+// happens — the bar resets first. Say nothing rather than promise a date in
+// a window that won't exist.
+function fmtFillDate(days) {
+  if (days == null || !isFinite(days) || days < 0 || days > 400) return null;
+  const d = new Date(Date.now() + days * 86400_000);
+  if (d.getFullYear() !== new Date().getFullYear()) return null;
+  return `${d.getDate()}. ${DA_MONTHS_FULL[d.getMonth()] ?? ""}`;
+}
+
+function renderLethal(s) {
+  const box = $("lethal");
+  if (!box) return;
+  const L = s.lethal;
+  // No building config, or a dose we can't divide by — hide the whole block.
+  if (!L || !(L.doseG > 0)) { box.hidden = true; return; }
+  box.hidden = false;
+
+  const pct = Math.round(L.progress * 100);
+  const fills = L.fillsCompleted ?? 0;
+  const next = fills + 1;
+  const label = L.label || "bygningen";
+
+  $("lethal-label").textContent = `Dødelig dosis · ${L.window}`;
+  $("lethal-pct").textContent = `${pct} %`;
+  $("lethal-fill").style.width = `${Math.min(100, Math.max(0, L.progress * 100))}%`;
+
+  $("lethal-lead").innerHTML = fills > 0
+    ? `I år har kaffen fyldt ${escape(label)} med dødelig luft ` +
+      `<strong>${fills} ${fills === 1 ? "gang" : "gange"}</strong>. Nu fylder vi nr. ${next}.`
+    : `I år er kaffen på vej til at fylde ${escape(label)} med dødelig luft.`;
+
+  const fracPct = (L.fractionCo2 ?? 0) * 100;
+  const parts = [
+    `${fmtG(L.doseG)} CO₂ pr. fyldning`,
+    `${fmtDa(fracPct, Number.isInteger(fracPct) ? 0 : 1)} % CO₂ i ${fmtDa(Math.round(L.volumeM3))} m³ luft`,
+  ];
+  const eta = fmtFillDate(L.daysToNextFill);
+  if (eta) parts.push(`nr. ${next} er fuld ${eta}`);
+  $("lethal-foot").textContent = parts.join("  ·  ");
 }
 
 function renderPrevious(previous) {

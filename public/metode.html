@@ -119,6 +119,55 @@
         én kop, ikke to.
       </p>
 
+      <h2>Dødelig dosis — bjælken på forsiden</h2>
+      <p>
+        Et ton CO₂ er svært at forestille sig. Så vi omregner årets
+        udledning til en enhed, man kan stå i: <em>hvor meget CO₂ skal
+        der til, før luften i huset ikke er til at være i?</em>
+        Bjælken på forsiden fylder op mod netop den dosis og nulstilles
+        hver 1. januar.
+      </p>
+      <p>
+        Thoravej 29 er efter BBR 4.515 m² kontoretageareal — summen af
+        de fire (afvigende) etager, ikke fire gange grundplanen på
+        1.548 m². Med en antaget etagehøjde på 2,8 m for et kontorhus
+        fra 1967 giver det
+      </p>
+      <pre class="formula">12.642 m³ luft</pre>
+      <p>
+        <strong>10 % CO₂ i luften er dødeligt inden for få minutter.</strong>
+        Til sammenligning er den danske arbejdsmiljø-grænseværdi 0,5 %
+        over en arbejdsdag, og 4 % er det amerikanske NIOSH-niveau for
+        “akut livsfarligt”. Ved 7 % mister man bevidstheden på
+        minutter. Vi regner på de 10 % — det er den tærskel, der svarer
+        til ordet <em>dødelig</em>.
+      </p>
+      <p>
+        CO₂ vejer 1,83 kg pr. m³ ved 20 °C, og udeluften indeholder
+        allerede ca. 420 ppm. Så dosen er rumfanget gange
+        koncentrations-springet gange massefylden:
+      </p>
+      <pre class="formula">(0,10 − 0,00042) × 12.642 m³ × 1,83 kg/m³ ≈ 2,3 ton CO₂</pre>
+      <p>
+        Maskinerne på 2. og 3. sal udleder omkring 5 ton CO₂eq om året.
+        Én fyldning af huset tager derfor omtrent fire en halv måned ved
+        det nuværende tempo — altså to gange om året, plus lidt.
+        Rumfang, etagehøjde og tærskel kan ændres under
+        <code>building</code> i <code>config.json</code>.
+      </p>
+      <p>
+        <strong>Og så det vigtige:</strong> det her er et
+        tankeeksperiment, ikke en måling. CO₂'en i vores tal er
+        <em>livscyklus</em>-CO₂eq — den slipper ud på kaffefarme, i
+        lastbiler og ud af køer, og næsten intet af den ender i luften
+        på Thoravej. Huset er desuden ventileret, så ingenting hober sig
+        op; i praksis ligger CO₂-niveauet indenfor på nogle få hundrede
+        ppm over udeluften. Bjælken siger ikke “luften herinde er
+        farlig”. Den siger: <em>hvis</em> årets kaffeudledning var
+        sluppet ud herinde, og <em>hvis</em> ventilationen var slukket,
+        så var vi nået hertil. Det er en målestok — ikke en advarsel.
+      </p>
+
       <h2>Kildekode &amp; data</h2>
       <p>
         Hele projektet ligger på

@@ -281,6 +281,16 @@ export class Store {
     return Array.from(map.values()).sort((a, b) => b.co2_g - a.co2_g || b.cups - a.cups);
   }
 
+  // Totals for everything on or after a local date — used for the
+  // calendar-year window behind the "dødelig dosis" bar.
+  getTotalsSince(sinceLocalDate: string): Totals {
+    const row = this.db.prepare(`
+      SELECT COUNT(*) AS cups, COALESCE(SUM(co2_g), 0) AS co2_g
+      FROM brews WHERE local_date >= ?
+    `).get(sinceLocalDate) as { cups: number; co2_g: number };
+    return this.addPendingIfMatches(row, p => p.localDate >= sinceLocalDate);
+  }
+
   getMonthTotals(localMonth: string): Totals {
     const row = this.db.prepare(`
       SELECT COUNT(*) AS cups, COALESCE(SUM(co2_g), 0) AS co2_g

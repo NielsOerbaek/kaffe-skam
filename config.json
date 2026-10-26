@@ -5,6 +5,16 @@
     "coffeeBaselineG": 8.68
   },
 
+  "_comment_building": "The 'dødelig dosis' progress bar on the live page. BBR for Thoravej 29: 4515 m2 office floor area (the deviating-floors sum, not 4x the 1548 m2 footprint); 2.8 m is an assumed 1967 office ceiling. lethalFractionCo2 0.10 = 10 % CO2 by volume, lethal within minutes; ambient is outdoor background; density is CO2 at 20 C, 101.325 kPa (44.01 g/mol / 24.055 L/mol).",
+  "building": {
+    "label": "Thoravej 29",
+    "floorAreaM2": 4515,
+    "ceilingHeightM": 2.8,
+    "lethalFractionCo2": 0.10,
+    "ambientFractionCo2": 0.00042,
+    "co2DensityKgPerM3": 1.83
+  },
+
   "beansByProduct": {
     "Coffee": 7,
     "Strong Coffee": 8,

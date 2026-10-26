@@ -5,6 +5,7 @@ import { Store } from "./store.ts";
 import type { Config } from "./config.ts";
 import type { ApiState } from "./types.ts";
 import { humanizeType } from "./co2.ts";
+import { lethalFill, daysToNextFill } from "./lethal.ts";
 
 const MIME: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -52,6 +53,9 @@ function handleRequest(req: IncomingMessage, res: ServerResponse, opts: ServerOp
 function pad2(n: number): string { return String(n).padStart(2, "0"); }
 function localDateString(d: Date): string {
   return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+function startOfDay(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }
 
 function sendTimeline(res: ServerResponse, opts: ServerOpts, q: URLSearchParams) {
@@ -180,6 +184,20 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
   const rolling30d  = sumPeriod(opts.store.getDailyTotals(localDateString(new Date(Date.now() - 29  * 86400_000))));
   const rolling365d = sumPeriod(opts.store.getDailyTotals(localDateString(new Date(Date.now() - 364 * 86400_000))));
 
+  // Calendar year to date — the window the "dødelig dosis" bar fills. Resets
+  // every 1 January, so the bar is a yearly scoreboard rather than a number
+  // that only ever grows.
+  const yearStart = `${now.getFullYear()}-01-01`;
+  const yearTotals = opts.store.getTotalsSince(yearStart);
+  const fill = lethalFill(yearTotals.co2_g, opts.config.building);
+  // Days elapsed in the year, today counted as a whole day, so the rate
+  // doesn't blow up at 00:05 on 1 January.
+  const daysElapsed = Math.max(
+    1,
+    Math.floor((startOfDay(now).getTime() - new Date(now.getFullYear(), 0, 1).getTime()) / 86400_000) + 1,
+  );
+  const gPerDay = yearTotals.co2_g / daysElapsed;
+
   const recent = opts.store.getRecentBrews(6);
 
   const floorByMachine = new Map(opts.config.machines.map(m => [m.id, m.floor]));
@@ -209,6 +227,19 @@ function sendState(res: ServerResponse, opts: ServerOpts) {
     month: { cups: month.cups, co2_g: month.co2_g },
     rolling30d,
     rolling365d,
+    year: { year: now.getFullYear(), cups: yearTotals.cups, co2_g: yearTotals.co2_g },
+    lethal: {
+      label: opts.config.building.label,
+      window: String(now.getFullYear()),
+      co2_g: yearTotals.co2_g,
+      volumeM3: fill.volumeM3,
+      fractionCo2: opts.config.building.lethalFractionCo2,
+      doseG: fill.doseG,
+      fillsCompleted: fill.fillsCompleted,
+      progress: fill.progress,
+      gPerDay,
+      daysToNextFill: daysToNextFill(fill, gPerDay),
+    },
     baselineG,
     lastBrews: recent.map(b => {
       const productName = opts.store.getProductName(b.machineId, b.productKey);

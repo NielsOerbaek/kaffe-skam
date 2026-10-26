@@ -68,7 +68,8 @@ Two files:
 
 - **`config.json`** (committed) — CO₂ factors, polling intervals, default
   bean grams keyed by **machine button name** (with API drink-type as
-  fallback), tea overrides, and any manual button-name overrides. The
+  fallback), tea overrides, any manual button-name overrides, and the
+  `building` geometry behind the "dødelig dosis" bar. The
   defaults match Thoravej 29's setup — adjust if you change suppliers or
   reprogram a machine.
 
@@ -125,6 +126,39 @@ arrives within 5 minutes. Each merge extends the window from its own
 timestamp, so two splashes one after the other still attach to the
 original brew.
 
+## Dødelig dosis
+
+A tonne of CO₂ means nothing to anyone. So the live page also carries a
+progress bar that converts the year's emissions into a room-sized unit:
+**how much CO₂ would it take to make the air in this building lethal?**
+
+```
+co₂_dose = volume × (lethal_fraction − ambient_fraction) × ρ(CO₂)
+         = 12 642 m³ × (0,10 − 0,00042) × 1,83 kg/m³
+         ≈ 2,3 t CO₂
+```
+
+- **12 642 m³** — BBR gives Thoravej 29 4 515 m² of office floor area (the
+  deviating-floors sum, *not* 4 × the 1 548 m² footprint), at an assumed
+  2.8 m ceiling for a 1967 office. The deep basement and the Thoravej 31
+  garage are excluded.
+- **10 % CO₂ by volume** is lethal within minutes. For scale: 0.5 % is the
+  Danish 8-hour workplace limit and 4 % is NIOSH's IDLH threshold. All of
+  it is adjustable under `building` in `config.json`.
+- At ~5 t CO₂eq/year the machines fill the building roughly every 4½
+  months, so the bar **laps**: it counts completed fills and shows progress
+  into the current one. The window is the **calendar year** and resets
+  every 1 January.
+
+The math lives in `src/lethal.ts` (pure, tested); the server exposes it as
+`state.lethal` and the frontend only writes the copy.
+
+**It is a thought experiment, and the UI says so.** The CO₂ we count is
+lifecycle CO₂eq — emitted on farms, in trucks and by cows, almost none of
+it inside the building — and the building is ventilated, so nothing
+accumulates. The bar is a unit of comparison, not a measurement of the air
+in the room. `/metode` spells that out in full.
+
 ## Architecture
 
 One Node.js process running on a Raspberry-Pi-class always-on box, behind
@@ -160,6 +194,7 @@ Internal modules in `src/`:
 | `poller.ts` | brew + counter polling loops, per-machine state, calibration, product-name refresh |
 | `merge.ts` | splash-of-milk → previous-brew merge state machine (pure) |
 | `co2.ts` | pure CO₂ math + drink-type humaniser |
+| `lethal.ts` | pure "dødelig dosis" math — air volume, lethal dose, fill progress |
 | `beans.ts` | per-product / per-drink default grams + calibration math |
 | `server.ts` | `/api/state`, `/api/timeline`, `/api/drinks`, and static file handler |
 
@@ -194,6 +229,19 @@ labelled with its origin.
     "locationName": "Thoravej 29",
     "today":   { "cups": 142, "co2_g": 2188.0 },
     "month":   { "cups": 3272, "co2_g": 46990.0 },
+    "year":    { "year": 2026, "cups": 48965, "co2_g": 4481001.5 },
+    "lethal": {
+      "label": "Thoravej 29",
+      "window": "2026",
+      "co2_g": 4481001.5,
+      "volumeM3": 12642,
+      "fractionCo2": 0.10,
+      "doseG": 2303769.4,
+      "fillsCompleted": 1,
+      "progress": 0.945,
+      "gPerDay": 14986.6,
+      "daysToNextFill": 8.4
+    },
     "lastBrews": [
       {
         "type": "CAPPUCCINO",
@@ -215,7 +263,9 @@ labelled with its origin.
 
   `lastBrews` is newest-first (up to 6). `stale: true` when the poller
   hasn't successfully reached Eversys in 60 s. `productName: null` falls
-  back to a Danish humanised `displayName`.
+  back to a Danish humanised `displayName`. `lethal` drives the "dødelig
+  dosis" bar — see below; `daysToNextFill` is `null` when there's no rate
+  to extrapolate from.
 
 - `GET /api/timeline?days=N` — zero-filled daily series of cup + CO₂ totals
   for the last `N` days (1–365, default 30).
@@ -227,7 +277,7 @@ labelled with its origin.
 
 ```bash
 npm run dev                  # live-reload during development
-npm test                     # 68 tests, vitest
+npm test                     # 109 tests, vitest
 npm run typecheck            # strict TS, noUncheckedIndexedAccess
 
 npm run backfill             # fetch and store the last 30 days of brews
@@ -266,7 +316,7 @@ kaffe.raakode.dk {
 ## Tests
 
 ```bash
-npm test          # 68 tests across 8 files
+npm test          # 109 tests across 10 files
 npm run typecheck # strict TS, noUncheckedIndexedAccess
 ```
 

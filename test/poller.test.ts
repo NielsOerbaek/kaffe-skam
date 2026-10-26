@@ -39,6 +39,14 @@ const baseConfig: Config = {
   clientSecret: "tok",
   authUrl: "https://auth.x/token",
   locationName: "Test Office",
+  building: {
+    label: "Testhuset",
+    floorAreaM2: 1000,
+    ceilingHeightM: 2.5,
+    lethalFractionCo2: 0.10,
+    ambientFractionCo2: 0.00042,
+    co2DensityKgPerM3: 1.83,
+  },
 };
 
 function singleMachinePoller(s: Store, api: FakeApi, machineId = M2) {

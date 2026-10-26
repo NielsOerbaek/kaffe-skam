@@ -128,6 +128,71 @@ body::after {
 }
 .left .period-saving:empty { display: none; }
 
+/* ── "Dødelig dosis" progress bar (live page, bottom of the left pane) ──
+   Fills as the calendar year's CO₂ approaches the mass that would take the
+   building's air to a lethal CO₂ concentration. Resets every 1 January. */
+.lethal {
+  padding-top: 2.4vh;
+  border-top: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9vh;
+}
+.lethal[hidden] { display: none; }
+.lethal-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2vw;
+}
+.lethal-pct {
+  font-size: clamp(22px, 3.4vh, 44px);
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  color: var(--up);
+  white-space: nowrap;
+  font-feature-settings: "tnum" 1, "lnum" 1, "ss01";
+}
+.lethal-bar {
+  position: relative;
+  height: 8px;
+  background: var(--bar-bg);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.lethal-bar-fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--up);
+  border-radius: 4px;
+  transition: width 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lethal-lead {
+  font-size: clamp(14px, 2vh, 23px);
+  font-weight: 300;
+  line-height: 1.3;
+  color: var(--fg);
+  letter-spacing: -0.005em;
+}
+.lethal-lead strong { font-weight: 500; }
+.lethal-foot,
+.lethal-note {
+  font-size: clamp(11px, 1.5vh, 16px);
+  font-weight: 300;
+  line-height: 1.4;
+  color: var(--muted-dim);
+  letter-spacing: 0.02em;
+}
+.lethal-foot { margin-top: -0.4vh; }
+.lethal-note a {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+}
+
 /* ────────────────── labels ────────────────── */
 .label {
   font-size: 1.7vh;
@@ -542,6 +607,16 @@ body::after {
   .left .period-col .n { font-size: clamp(30px, 8vw, 48px); }
   .left .period-col .sub { font-size: clamp(14px, 3.6vw, 17px); }
   .left .period-saving { font-size: clamp(12px, 3vw, 14px); }
+  .lethal {
+    padding-top: 20px;
+    margin-top: 20px;
+    gap: 10px;
+  }
+  .lethal-pct { font-size: clamp(22px, 6.5vw, 34px); }
+  .lethal-lead { font-size: clamp(15px, 4vw, 19px); max-width: none; }
+  .lethal-foot,
+  .lethal-note { font-size: clamp(12px, 3vw, 14px); }
+  .lethal-foot { margin-top: 0; }
 
   /* ── Last brew section ── */
   .right .drink-line { gap: 2.5vw; margin-top: 1.2vh; }

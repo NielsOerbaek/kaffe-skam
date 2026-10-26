@@ -6,6 +6,16 @@ export interface MachineConfig {
   floor: string;
 }
 
+// The building the "dødelig dosis" bar fills up. See src/lethal.ts.
+export interface BuildingConfig {
+  label: string;               // shown in the UI copy ("…fylde Thoravej 29…")
+  floorAreaM2: number;         // BBR floor area of the occupiable floors
+  ceilingHeightM: number;      // assumed interior height
+  lethalFractionCo2: number;   // CO₂ volume fraction counted as lethal (0.10 = 10 %)
+  ambientFractionCo2: number;  // outdoor background we start from
+  co2DensityKgPerM3: number;   // CO₂ density at room temperature
+}
+
 export interface Config {
   co2: { beansFactorGPerG: number; milkFactorGPerMl: number; coffeeBaselineG: number };
   beansDefaultsG: Record<string, number>;       // by API drink_type ENUM — fallback only
@@ -29,6 +39,7 @@ export interface Config {
   clientSecret: string;
   authUrl: string;                               // Eversys OAuth token endpoint
   locationName: string;                          // brand label shown in the top-left corner
+  building: BuildingConfig;                      // "dødelig dosis" bar — see src/lethal.ts
 }
 
 const requireField = (obj: unknown, path: string): unknown => {
@@ -41,6 +52,18 @@ const requireField = (obj: unknown, path: string): unknown => {
     cur = cur[p];
   }
   return cur;
+};
+
+// Thoravej 29 per BBR, with a 10 % CO₂ lethal threshold. Used when
+// config.json has no "building" block (or only part of one) so an older
+// config still boots.
+const DEFAULT_BUILDING: BuildingConfig = {
+  label: "bygningen",
+  floorAreaM2: 4515,
+  ceilingHeightM: 2.8,
+  lethalFractionCo2: 0.10,
+  ambientFractionCo2: 0.00042,
+  co2DensityKgPerM3: 1.83,
 };
 
 // Read a tiny KEY=VALUE .env file. Lines starting with # are comments.
@@ -127,6 +150,24 @@ export function loadConfig(dir: string): Config {
   const productNameOverrides = (raw && typeof raw === "object" && (raw as any).productNameOverrides) || {};
   const milkUnitMl = typeof (raw as any).milkUnitMl === "number" ? (raw as any).milkUnitMl : 12.5;
 
+  // Per-key merge so a partial "building" block only overrides what it names.
+  const rawBuilding = ((raw as any).building ?? {}) as Partial<BuildingConfig>;
+  const positive = (v: unknown, fallback: number): number =>
+    typeof v === "number" && Number.isFinite(v) && v > 0 ? v : fallback;
+  const building: BuildingConfig = {
+    label: typeof rawBuilding.label === "string" && rawBuilding.label.trim()
+      ? rawBuilding.label.trim()
+      : DEFAULT_BUILDING.label,
+    floorAreaM2:        positive(rawBuilding.floorAreaM2,        DEFAULT_BUILDING.floorAreaM2),
+    ceilingHeightM:     positive(rawBuilding.ceilingHeightM,     DEFAULT_BUILDING.ceilingHeightM),
+    lethalFractionCo2:  positive(rawBuilding.lethalFractionCo2,  DEFAULT_BUILDING.lethalFractionCo2),
+    ambientFractionCo2: positive(rawBuilding.ambientFractionCo2, DEFAULT_BUILDING.ambientFractionCo2),
+    co2DensityKgPerM3:  positive(rawBuilding.co2DensityKgPerM3,  DEFAULT_BUILDING.co2DensityKgPerM3),
+  };
+  if (building.lethalFractionCo2 <= building.ambientFractionCo2) {
+    throw new Error(`config.json: building.lethalFractionCo2 must exceed building.ambientFractionCo2`);
+  }
+
   return {
     ...raw,
     beansByProduct,
@@ -140,5 +181,6 @@ export function loadConfig(dir: string): Config {
     clientSecret,
     authUrl,
     locationName,
+    building,
   };
 }
