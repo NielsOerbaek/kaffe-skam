@@ -1,4 +1,4 @@
-// Per-drink-type breakdown for the current month.
+// Per-drink-type breakdown for the last 365 days.
 // Ranked by CO₂ contribution. Bar shows share of total CO₂. Cup count and
 // total CO₂ are spelled out next to the bar.
 
@@ -33,8 +33,6 @@ function nameForRow(d) {
   // for the API drink_type enum.
   return d.productName ?? DA_DRINK_FALLBACK[d.type] ?? d.displayName;
 }
-const DA_MONTHS_FULL = ["januar","februar","marts","april","maj","juni","juli","august","september","oktober","november","december"];
-
 function fmtG(g) {
   if (g >= 1000) return (g / 1000).toFixed(1).replace(".", ",") + " kg";
   return Math.round(g) + " g";
@@ -45,22 +43,20 @@ function escape(s) {
 }
 
 async function load() {
-  const r = await fetch("/api/drinks", { cache: "no-store" });
+  const r = await fetch("/api/drinks?days=365", { cache: "no-store" });
   const j = await r.json();
   render(j);
 }
 
 function render(j) {
-  const [y, m] = j.month.split("-").map(Number);
-  const monthName = DA_MONTHS_FULL[m - 1] ?? "";
-  document.getElementById("drinks-month").textContent = `${monthName.charAt(0).toUpperCase() + monthName.slice(1)} ${y}`;
+  document.getElementById("drinks-month").textContent = `Seneste ${j.days} dage`;
   document.getElementById("drinks-stats").textContent =
     `${j.total.cups.toLocaleString("da-DK")} kopper · ${fmtG(j.total.co2_g)} CO₂eq i alt`;
 
   const list = document.getElementById("drink-list");
   list.innerHTML = "";
   if (j.drinks.length === 0) {
-    list.innerHTML = `<li class="empty">Ingen bryg endnu denne måned.</li>`;
+    list.innerHTML = `<li class="empty">Ingen bryg i de seneste ${j.days} dage.</li>`;
     return;
   }
   for (const d of j.drinks) {
@@ -71,12 +67,14 @@ function render(j) {
       ? "±0 %"
       : (deltaPct > 0 ? "+" : "−") + Math.abs(deltaPct) + " %";
     const deltaClass = deltaPct > 0 ? "up" : deltaPct < 0 ? "down" : "";
+    const cupsPct = Math.round(d.shareOfCups * 100);
     const li = document.createElement("li");
     li.innerHTML =
       `<span class="dl-drink">${escape(name)}</span>` +
       `<span class="dl-bar"><span class="dl-bar-fill" style="width:${d.shareOfCo2 * 100}%"></span></span>` +
       `<span class="dl-share">${sharePct} %</span>` +
-      `<span class="dl-cups">${d.cups.toLocaleString("da-DK")}</span>` +
+      `<span class="dl-bar dl-bar-cups"><span class="dl-bar-fill dl-bar-fill-cups" style="width:${d.shareOfCups * 100}%"></span></span>` +
+      `<span class="dl-share dl-share-cups">${cupsPct} %</span>` +
       `<span class="dl-co2">${escape(fmtG(d.co2_g))}<span class="unit-tail">&nbsp;CO₂</span></span>` +
       `<span class="dl-delta ${deltaClass}">${deltaText}</span>`;
     list.appendChild(li);

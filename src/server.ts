@@ -119,11 +119,11 @@ function sendTimeline(res: ServerResponse, opts: ServerOpts, q: URLSearchParams)
 }
 
 function sendDrinks(res: ServerResponse, opts: ServerOpts, q: URLSearchParams) {
-  const monthQ = q.get("month");
-  const month = monthQ && /^\d{4}-\d{2}$/.test(monthQ)
-    ? monthQ
-    : new Date().toISOString().slice(0, 7);
-  const rows = opts.store.getByDrinkType(month);
+  const daysRaw = Number(q.get("days") ?? "365");
+  const days = Number.isFinite(daysRaw) && daysRaw > 0 && daysRaw <= 3650 ? Math.floor(daysRaw) : 365;
+  const since = localDateString(new Date(Date.now() - (days - 1) * 86400_000));
+
+  const rows = opts.store.getByDrinkTypeSince(since);
   const total = rows.reduce((s, r) => s + r.co2_g, 0);
   const totalCups = rows.reduce((s, r) => s + r.cups, 0);
 
@@ -139,7 +139,8 @@ function sendDrinks(res: ServerResponse, opts: ServerOpts, q: URLSearchParams) {
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
   res.end(JSON.stringify({
-    month,
+    since,
+    days,
     total: { cups: totalCups, co2_g: total },
     baselineG,
     drinks: rows.map(r => {
@@ -157,6 +158,7 @@ function sendDrinks(res: ServerResponse, opts: ServerOpts, q: URLSearchParams) {
         co2PerCupG: perCup,
         deltaVsCoffeePct: baselineG > 0 ? (perCup / baselineG - 1) : 0,
         shareOfCo2: total > 0 ? r.co2_g / total : 0,
+        shareOfCups: totalCups > 0 ? r.cups / totalCups : 0,
       };
     }),
   }));

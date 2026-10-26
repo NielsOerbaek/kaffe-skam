@@ -250,6 +250,37 @@ export class Store {
     return Array.from(map.values()).sort((a, b) => b.co2_g - a.co2_g || b.cups - a.cups);
   }
 
+  // Per-drink rollup for a rolling date window (local_date >= sinceLocalDate).
+  // Same grouping/sorting logic as getByDrinkType.
+  getByDrinkTypeSince(sinceLocalDate: string): Array<{ key: string; displayName: string; drinkType: string; cups: number; co2_g: number }> {
+    const rows = this.db.prepare(`
+      SELECT b.drink_type AS drinkType,
+             p.name       AS productName,
+             COUNT(*)     AS cups,
+             COALESCE(SUM(b.co2_g), 0) AS co2_g
+      FROM brews b
+      LEFT JOIN products p ON p.machine_id = b.machine_id AND p.product_key = b.product_key
+      WHERE b.local_date >= ?
+      GROUP BY COALESCE(p.name, b.drink_type)
+      ORDER BY co2_g DESC, cups DESC
+    `).all(sinceLocalDate) as Array<{ drinkType: string; productName: string | null; cups: number; co2_g: number }>;
+
+    const map = new Map<string, { key: string; displayName: string; drinkType: string; cups: number; co2_g: number }>();
+    for (const r of rows) {
+      const key = r.productName ?? r.drinkType;
+      map.set(key, { key, displayName: r.productName ?? r.drinkType, drinkType: r.drinkType, cups: r.cups, co2_g: r.co2_g });
+    }
+    // Fold in pending brews
+    for (const p of this.getAllPending()) {
+      if (p.localDate < sinceLocalDate) continue;
+      const name = this.getProductName(p.machineId, p.productKey) ?? p.drinkType;
+      const cur = map.get(name);
+      if (cur) { cur.cups += 1; cur.co2_g += p.co2G; }
+      else map.set(name, { key: name, displayName: name, drinkType: p.drinkType, cups: 1, co2_g: p.co2G });
+    }
+    return Array.from(map.values()).sort((a, b) => b.co2_g - a.co2_g || b.cups - a.cups);
+  }
+
   getMonthTotals(localMonth: string): Totals {
     const row = this.db.prepare(`
       SELECT COUNT(*) AS cups, COALESCE(SUM(co2_g), 0) AS co2_g

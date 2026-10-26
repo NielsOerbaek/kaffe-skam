@@ -4,6 +4,7 @@
   --muted: rgba(20, 20, 20, 0.66);
   --muted-dim: rgba(20, 20, 20, 0.45);
   --hairline: rgba(20, 20, 20, 0.18);
+  --bar-bg: rgba(20, 20, 20, 0.10);
   --up: #8c4a1d;
   --down: #3f6a2a;
   --pad-x: 4vw;
@@ -642,12 +643,13 @@ body::after {
 .dl-header,
 .drink-list li {
   display: grid;
-  /* drink | bar | share | cups | co2 | delta */
+  /* drink | co2 bar | co2% | cups bar | cups% | co2 total | delta */
   grid-template-columns:
     minmax(160px, 1.4fr)    /* drink name */
-    minmax(120px, 1.6fr)    /* share bar */
-    56px                    /* share % */
-    minmax(60px, 0.7fr)     /* cups */
+    minmax(100px, 1.3fr)    /* CO2 share bar */
+    50px                    /* CO2 share % */
+    minmax(100px, 1.3fr)    /* cups share bar */
+    50px                    /* cups share % */
     minmax(110px, 0.9fr)    /* total co2 */
     minmax(90px, 0.9fr);    /* delta vs sort kaffe */
   align-items: center;
@@ -664,7 +666,7 @@ body::after {
   padding-bottom: 1.4vh;
   margin-bottom: 1vh;
 }
-.dl-h-cups, .dl-h-co2, .dl-h-share, .dl-h-delta { text-align: right; }
+.dl-h-co2, .dl-h-share, .dl-h-share-cups, .dl-h-delta { text-align: right; }
 .dl-h-delta { letter-spacing: 0.14em; }
 .drink-list {
   list-style: none;
@@ -695,12 +697,13 @@ body::after {
   border-radius: 2px;
   transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
 }
-.dl-share, .dl-cups, .dl-co2, .dl-delta {
+.dl-share, .dl-share-cups, .dl-co2, .dl-delta {
   text-align: right;
   font-feature-settings: "tnum" 1, "lnum" 1;
   white-space: nowrap;
 }
-.dl-share { color: var(--muted); font-size: 1.8vh; }
+.dl-share, .dl-share-cups { color: var(--muted); font-size: 1.8vh; }
+.dl-bar-fill-cups { background: var(--muted); }
 .dl-co2 .unit-tail { font-size: 0.85em; color: var(--muted); }
 .dl-delta { font-size: 1.9vh; color: var(--muted); }
 .dl-delta.up   { color: var(--up); }
@@ -777,18 +780,19 @@ body::after {
   .drink-list li .dl-drink { order: 1; grid-column: 1; }
   .drink-list li .dl-co2   { order: 2; grid-column: 2; }
   .drink-list li .dl-bar   { order: 3; grid-column: 1 / -1; }
-  .drink-list li .dl-cups,
   .drink-list li .dl-share,
+  .drink-list li .dl-share-cups,
   .drink-list li .dl-delta {
     order: 4;
     font-size: clamp(12px, 3vw, 14px);
     color: var(--muted);
   }
-  .drink-list li .dl-cups   { grid-column: 1; text-align: left; }
-  .drink-list li .dl-share  { grid-column: 1; text-align: left; }
-  .drink-list li .dl-delta  { grid-column: 2; text-align: right; }
-  .drink-list li .dl-cups::after  { content: " kopper"; color: var(--muted); font-size: 0.9em; }
-  .drink-list li .dl-share::after { content: " af CO₂"; color: var(--muted); font-size: 0.9em; }
+  .drink-list li .dl-bar-cups { order: 3; grid-column: 1 / -1; }
+  .drink-list li .dl-share      { grid-column: 1; text-align: left; }
+  .drink-list li .dl-share-cups { grid-column: 1; text-align: left; }
+  .drink-list li .dl-delta      { grid-column: 2; text-align: right; }
+  .drink-list li .dl-share::after      { content: " af CO₂"; color: var(--muted); font-size: 0.9em; }
+  .drink-list li .dl-share-cups::after { content: " af kopper"; color: var(--muted); font-size: 0.9em; }
 
   #chart { height: 46vh; min-height: 260px; }
   .chart-toggle button {
